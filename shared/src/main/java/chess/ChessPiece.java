@@ -101,7 +101,16 @@ public class ChessPiece {
             }
 
             case KNIGHT -> {
-
+                int[][] offsets = {{2,1},{1,2},{-1,2},{-2,1},{-2,-1},{-1,-2},{1,-2},{2,-1}};
+                for (int[] off : offsets) {
+                    ChessPosition pos = new ChessPosition(row + off[0], col + off[1]);
+                    if (isInBounds(pos)) {
+                        ChessPiece target = board.getPiece(pos);
+                        if (target == null || target.getTeamColor() != teamColor) {
+                            moves.add(new ChessMove(myPosition, pos, null));
+                        }
+                    }
+                }
             }
             //(row, col)
             case BISHOP -> addSlidingMoves(board, myPosition, moves, new int[][]{{1,1},{1,-1},{-1,1},{-1,-1}});//all four diagonals
@@ -109,7 +118,16 @@ public class ChessPiece {
             case QUEEN -> addSlidingMoves(board, myPosition, moves, new int[][]{{1,0},{-1,0},{0,1},{0,-1},{1,1},{1,-1},{-1,1},{-1,-1}});//all four directions + four diagonals
             //can move in all 8 directions like the queen but only one step
             case KING -> {
-
+                int[][] offsets = {{1,0},{-1,0},{0,1},{0,-1},{1,1},{1,-1},{-1,1},{-1,-1}};
+                for (int[] off : offsets) {
+                    ChessPosition pos = new ChessPosition(row + off[0], col + off[1]);
+                    if (isInBounds(pos)) {
+                        ChessPiece target = board.getPiece(pos);
+                        if (target == null || target.getTeamColor() != teamColor) {
+                            moves.add(new ChessMove(myPosition, pos, null));
+                        }
+                    }
+                }
             }
         }
 
