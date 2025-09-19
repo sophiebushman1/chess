@@ -1,4 +1,5 @@
 package chess;
+import java.util.Objects;
 
 
 /**
@@ -41,4 +42,25 @@ public class ChessPosition {
 
         return column;
     }
+    //Now lets use overide to refine the equals function, cause right now if says that positions with the same corrdinates are not equal when they should be.
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        ChessPosition that = (ChessPosition) o;
+        return row == that.row && column == that.column;
+    }
+    // whenever you override equals(), you must override hashCode() so they agree.
+    @Override
+    public int hashCode() {
+        return Objects.hash(row, column);
+    }
+    //tostring function so that we can see positions as more readable
+    @Override
+    public String toString() {
+        return "(" + row + "," + column + ")";
+    }
 }
+
+
