@@ -73,14 +73,22 @@ public class ChessPiece {
                 int oneRow = row + direction;
                 if (isInBounds(oneRow, col) && board.getPiece(new ChessPosition(oneRow, col)) == null) {
                     ChessPosition oneStep = new ChessPosition(oneRow, col);
-                    moves.add(new ChessMove(myPosition, oneStep, null));
+                    if (oneRow == 1 || oneRow == 8) {
+                        // Promotion on one step (backrow fix)
+                        moves.add(new ChessMove(myPosition, oneStep, ChessPiece.PieceType.QUEEN));
+                        moves.add(new ChessMove(myPosition, oneStep, ChessPiece.PieceType.ROOK));
+                        moves.add(new ChessMove(myPosition, oneStep, ChessPiece.PieceType.BISHOP));
+                        moves.add(new ChessMove(myPosition, oneStep, ChessPiece.PieceType.KNIGHT));
+                    } else {
+                        moves.add(new ChessMove(myPosition, oneStep, null));
 
-                    // 2 steps forward
-                    int startRow = (teamColor == ChessGame.TeamColor.WHITE) ? 2 : 7;
-                    int twoRow = row + 2 * direction;
-                    if (row == startRow && isInBounds(twoRow, col) && board.getPiece(new ChessPosition(twoRow, col)) == null) {
-                        ChessPosition twoStep = new ChessPosition(twoRow, col);
-                        moves.add(new ChessMove(myPosition, twoStep, null));
+                        // 2 steps forward
+                        int startRow = (teamColor == ChessGame.TeamColor.WHITE) ? 2 : 7;
+                        int twoRow = row + 2 * direction;
+                        if (row == startRow && isInBounds(twoRow, col) && board.getPiece(new ChessPosition(twoRow, col)) == null) {
+                            ChessPosition twoStep = new ChessPosition(twoRow, col);
+                            moves.add(new ChessMove(myPosition, twoStep, null));
+                        }
                     }
                 }
 
@@ -92,11 +100,20 @@ public class ChessPiece {
                         ChessPosition diag = new ChessPosition(newRow, c); //only forward one row
                         ChessPiece target = board.getPiece(diag);
                         if (target != null && target.getTeamColor() != teamColor) {
-                            moves.add(new ChessMove(myPosition, diag, null));
+                            if (newRow == 1 || newRow == 8) {
+                                // Promotion on capture
+                                moves.add(new ChessMove(myPosition, diag, ChessPiece.PieceType.QUEEN));
+                                moves.add(new ChessMove(myPosition, diag, ChessPiece.PieceType.ROOK));
+                                moves.add(new ChessMove(myPosition, diag, ChessPiece.PieceType.BISHOP));
+                                moves.add(new ChessMove(myPosition, diag, ChessPiece.PieceType.KNIGHT));
+                            } else {
+                                moves.add(new ChessMove(myPosition, diag, null));
+                            }
                         }
                     }
                 }
             }
+
 
             case KNIGHT -> {
                 int[][] offsets = {{2,1},{1,2},{-1,2},{-2,1},{-2,-1},{-1,-2},{1,-2},{2,-1}};
