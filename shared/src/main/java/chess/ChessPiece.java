@@ -70,28 +70,26 @@ public class ChessPiece {
                 //one step forward
                 int direction = (teamColor == ChessGame.TeamColor.WHITE) ? 1 : -1;
                 //See what direction the pawn in question should be moving (up if white vs down if black)
-                ChessPosition oneStep = new ChessPosition(row + direction, col);
-                //moving 1 row in that direction to target row if its on th board and the space if empty
-                if (isInBounds(oneStep) && board.getPiece(oneStep) == null) {
+                int oneRow = row + direction;
+                if (isInBounds(oneRow, col) && board.getPiece(new ChessPosition(oneRow, col)) == null) {
+                    ChessPosition oneStep = new ChessPosition(oneRow, col);
                     moves.add(new ChessMove(myPosition, oneStep, null));
-                    //since all checks pass we can now use chessmove
 
                     // 2 steps forward
-                    //here was have to check if the pawn is in the front row AND if the two spaces infront of it are on the board and empty, then we can use chesssmove.
-
                     int startRow = (teamColor == ChessGame.TeamColor.WHITE) ? 2 : 7;
-                    ChessPosition twoStep = new ChessPosition(row + 2 * direction, col);
-                    if (row == startRow && board.getPiece(twoStep) == null) {
+                    int twoRow = row + 2 * direction;
+                    if (row == startRow && isInBounds(twoRow, col) && board.getPiece(new ChessPosition(twoRow, col)) == null) {
+                        ChessPosition twoStep = new ChessPosition(twoRow, col);
                         moves.add(new ChessMove(myPosition, twoStep, null));
                     }
-
                 }
 
                 // Handling Diagonal captures - has to be inbounds, empty, and an enemy color
                 int[] diagCols = {col - 1, col + 1}; //white vs black
                 for (int c : diagCols) {
-                    ChessPosition diag = new ChessPosition(row + direction, c); //only forward one row
-                    if (isInBounds(diag)) {
+                    int newRow = row + direction;
+                    if (isInBounds(newRow, c)) {
+                        ChessPosition diag = new ChessPosition(newRow, c); //only forward one row
                         ChessPiece target = board.getPiece(diag);
                         if (target != null && target.getTeamColor() != teamColor) {
                             moves.add(new ChessMove(myPosition, diag, null));
@@ -103,8 +101,10 @@ public class ChessPiece {
             case KNIGHT -> {
                 int[][] offsets = {{2,1},{1,2},{-1,2},{-2,1},{-2,-1},{-1,-2},{1,-2},{2,-1}};
                 for (int[] off : offsets) {
-                    ChessPosition pos = new ChessPosition(row + off[0], col + off[1]);
-                    if (isInBounds(pos)) {
+                    int newRow = row + off[0];
+                    int newCol = col + off[1];
+                    if (isInBounds(newRow, newCol)) {
+                        ChessPosition pos = new ChessPosition(newRow, newCol);
                         ChessPiece target = board.getPiece(pos);
                         if (target == null || target.getTeamColor() != teamColor) {
                             moves.add(new ChessMove(myPosition, pos, null));
@@ -120,8 +120,10 @@ public class ChessPiece {
             case KING -> {
                 int[][] offsets = {{1,0},{-1,0},{0,1},{0,-1},{1,1},{1,-1},{-1,1},{-1,-1}};
                 for (int[] off : offsets) {
-                    ChessPosition pos = new ChessPosition(row + off[0], col + off[1]);
-                    if (isInBounds(pos)) {
+                    int newRow = row + off[0];
+                    int newCol = col + off[1];
+                    if (isInBounds(newRow, newCol)) {
+                        ChessPosition pos = new ChessPosition(newRow, newCol);
                         ChessPiece target = board.getPiece(pos);
                         if (target == null || target.getTeamColor() != teamColor) {
                             moves.add(new ChessMove(myPosition, pos, null));
