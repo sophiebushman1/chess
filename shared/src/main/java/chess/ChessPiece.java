@@ -26,19 +26,27 @@ public class ChessPiece {
         ROOK,
         PAWN
     }
-
+    public enum TeamColor {
+        WHITE,
+        BLACK
+    }
+    private final TeamColor teamColor;
+    private final ChessPiece.PieceType pieceType;
+    //Chesspiece in front here?
     /**
      * @return Which team this chess piece belongs to
      */
     public ChessGame.TeamColor getTeamColor() {
-        throw new RuntimeException("Not implemented");
+
+        return teamColor;
     }
 
     /**
      * @return which type of chess piece this piece is
      */
     public PieceType getPieceType() {
-        throw new RuntimeException("Not implemented");
+
+        return pieceType;
     }
 
     /**
@@ -56,18 +64,17 @@ public class ChessPiece {
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        ChessPosition that = (ChessPosition) o;
-        return row == that.row && column == that.column;
+        if (!(o instanceof ChessPiece that)) return false;
+        return teamColor == that.teamColor && pieceType == that.pieceType;
     }
     // whenever you override equals(), you must override hashCode() so they agree.
     @Override
     public int hashCode() {
-        return Objects.hash(row, column);
+        return Objects.hash(teamColor, pieceType);
     }
     //tostring function so that we can see positions as more readable
     @Override
     public String toString() {
-        return "(" + row + "," + column + ")";
+        return teamColor + " " + pieceType;
     }
 }
