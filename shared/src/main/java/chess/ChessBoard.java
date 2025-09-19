@@ -54,6 +54,7 @@ public class ChessBoard {
             for (int col = 0; col < 8; col++) {
                 board[row][col] = null;
             }
+        }
 
         // Place pawns in the front rows of each players side (2 and 7) black and white
         for (int col = 1; col <= 8; col++) {
