@@ -9,6 +9,10 @@ import java.util.Objects;
  * signature of the existing methods.
  */
 public class ChessMove {
+    //Setup variables
+    private final ChessPosition startPosition;
+    private final ChessPosition endPosition;
+    private final ChessPiece.PieceType promotionPiece;
 
     public ChessMove(ChessPosition startPosition, ChessPosition endPosition,
                      ChessPiece.PieceType promotionPiece) {
@@ -18,14 +22,16 @@ public class ChessMove {
      * @return ChessPosition of starting location
      */
     public ChessPosition getStartPosition() {
-        throw new RuntimeException("Not implemented");
+
+        return startPosition;
     }
 
     /**
      * @return ChessPosition of ending location
      */
     public ChessPosition getEndPosition() {
-        throw new RuntimeException("Not implemented");
+
+        return endPosition;
     }
 
     /**
@@ -35,25 +41,28 @@ public class ChessMove {
      * @return Type of piece to promote a pawn to, or null if no promotion
      */
     public ChessPiece.PieceType getPromotionPiece() {
-        throw new RuntimeException("Not implemented");
+
+        return promotionPiece;
     }
     //Now lets use overide to refine the equals function, cause right now if says that positions with the same corrdinates are not equal when they should be.
 
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        ChessPosition that = (ChessPosition) o;
-        return row == that.row && column == that.column;
+        if (!(o instanceof ChessMove)) return false;
+        ChessMove chessMove = (ChessMove) o;
+        return Objects.equals(startPosition, chessMove.startPosition) &&
+                Objects.equals(endPosition, chessMove.endPosition) &&
+                promotionPiece == chessMove.promotionPiece;
     }
     // whenever you override equals(), you must override hashCode() so they agree.
     @Override
     public int hashCode() {
-        return Objects.hash(row, column);
+        return Objects.hash(startPosition, endPosition, promotionPiece);
     }
     //tostring function so that we can see positions as more readable
     @Override
     public String toString() {
-        return "(" + row + "," + column + ")";
+        return startPosition + " -> " + endPosition + (promotionPiece != null ? " promote to " + promotionPiece : "");
     }
 }
