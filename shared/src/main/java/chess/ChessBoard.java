@@ -1,5 +1,7 @@
 package chess;
 
+import java.util.Objects;
+
 /**
  * A chessboard that can hold and rearrange chess pieces.
  * <p>
@@ -39,5 +41,24 @@ public class ChessBoard {
      */
     public void resetBoard() {
         throw new RuntimeException("Not implemented");
+    }
+    //Now lets use overide to refine the equals function, cause right now if says that positions with the same corrdinates are not equal when they should be.
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        ChessPosition that = (ChessPosition) o;
+        return row == that.row && column == that.column;
+    }
+    // whenever you override equals(), you must override hashCode() so they agree.
+    @Override
+    public int hashCode() {
+        return Objects.hash(row, column);
+    }
+    //tostring function so that we can see positions as more readable
+    @Override
+    public String toString() {
+        return "(" + row + "," + column + ")";
     }
 }
