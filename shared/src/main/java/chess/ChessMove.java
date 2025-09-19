@@ -16,6 +16,10 @@ public class ChessMove {
 
     public ChessMove(ChessPosition startPosition, ChessPosition endPosition,
                      ChessPiece.PieceType promotionPiece) {
+        this.startPosition = Objects.requireNonNull(startPosition, "start position is null");
+        this.endPosition = Objects.requireNonNull(endPosition, "end position is null");
+        this.promotionPiece = promotionPiece;
+        // The promotionalpeice can be null but the start and end can't be so check
     }
 
     /**
