@@ -9,8 +9,14 @@ import java.util.Objects;
  * signature of the existing methods.
  */
 public class ChessBoard {
+    private final ChessPiece[][] board;
+    //creating the board
 
-    public ChessBoard() {
+
+
+    public ChessBoard(){
+        board = new ChessPiece[8][8];
+    //Set it to be an 8x8 board
         
     }
 
@@ -21,7 +27,8 @@ public class ChessBoard {
      * @param piece    the piece to add
      */
     public void addPiece(ChessPosition position, ChessPiece piece) {
-        throw new RuntimeException("Not implemented");
+        board[position.getRow() - 1][position.getColumn() - 1] = piece;
+        //Java arrays are 0–7 so we need to subtract 1 to get board[7] which becomes our 'piece'
     }
 
     /**
@@ -32,7 +39,8 @@ public class ChessBoard {
      * position
      */
     public ChessPiece getPiece(ChessPosition position) {
-        throw new RuntimeException("Not implemented");
+        return board[position.getRow() - 1][position.getColumn() - 1];
+
     }
 
     /**
@@ -40,6 +48,8 @@ public class ChessBoard {
      * (How the game of chess normally starts)
      */
     public void resetBoard() {
+
+        // Phase 1: not yet
         throw new RuntimeException("Not implemented");
     }
     //Now lets use overide to refine the equals function, cause right now if says that positions with the same corrdinates are not equal when they should be.
@@ -47,18 +57,30 @@ public class ChessBoard {
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        ChessPosition that = (ChessPosition) o;
-        return row == that.row && column == that.column;
+        if (!(o instanceof ChessBoard that)) return false;
+        return java.util.Arrays.deepEquals(board, that.board);
+
+
     }
     // whenever you override equals(), you must override hashCode() so they agree.
     @Override
     public int hashCode() {
-        return Objects.hash(row, column);
+        return Objects.hash(java.util.Arrays.deepHashCode(board));
     }
     //tostring function so that we can see positions as more readable
     @Override
     public String toString() {
-        return "(" + row + "," + column + ")";
+        StringBuilder sb = new StringBuilder();
+        for (int row = 8; row >= 1; row--) {
+            for (int col = 1; col <= 8; col++) {
+                ChessPiece piece = getPiece(new ChessPosition(row, col));
+                sb.append(piece == null ? "." : piece.getPieceType().toString().charAt(0));
+                sb.append(" ");
+                // First letter of piece is printed with a space and period for readability
+            }
+            sb.append("\n");
+        }
+        return sb.toString();
     }
+    //This to string loops through the whole board position by position top to bottom to build the current board with stringbuilder
 }
