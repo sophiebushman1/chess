@@ -57,9 +57,11 @@ public class ChessPiece {
      * @return Collection of valid moves
      */
     public Collection<ChessMove> pieceMoves(ChessBoard board, ChessPosition myPosition) {
-        throw new RuntimeException("Not implemented");
+        // Just return an empty list? do later in phase 1
+        // real movement logic.
+        return new java.util.ArrayList<>();
     }
-    //Now lets use overide to refine the equals function, cause right now if says that positions with the same corrdinates are not equal when they should be.
+    //Now lets use override to refine the equals function, cause right now if says that positions with the same corrdinates are not equal when they should be.
 
     @Override
     public boolean equals(Object o) {
