@@ -112,7 +112,40 @@ public class ChessPiece {
 
             }
         }
+
+
         return moves;
+    }
+    // Helper: sliding pieces like Rook, Bishop, Queen
+    private void addSlidingMoves(ChessBoard board, ChessPosition start, Collection<ChessMove> moves, int[][] directions) {
+        int row = start.getRow();
+        int col = start.getColumn();
+        for (int[] dir : directions) {
+            int r = row + dir[0];
+            int c = col + dir[1];
+            while (isInBounds(r, c)) {
+                ChessPosition pos = new ChessPosition(r, c);
+                ChessPiece target = board.getPiece(pos);
+                if (target == null) {
+                    moves.add(new ChessMove(start, pos, null));
+                } else {
+                    if (target.getTeamColor() != teamColor) {
+                        moves.add(new ChessMove(start, pos, null));
+                    }
+                    break; // cannot jump over pieces
+                }
+                r += dir[0];
+                c += dir[1];
+            }
+        }
+    }
+
+    // Helper: check bounds
+    private boolean isInBounds(ChessPosition pos) {
+        return pos.getRow() >= 1 && pos.getRow() <= 8 && pos.getColumn() >= 1 && pos.getColumn() <= 8;
+    }
+    private boolean isInBounds(int row, int col) {
+        return row >= 1 && row <= 8 && col >= 1 && col <= 8;
     }
     //Now lets use override to refine the equals function, cause right now if says that positions with the same corrdinates are not equal when they should be.
 
