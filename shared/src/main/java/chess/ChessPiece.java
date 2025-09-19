@@ -55,11 +55,63 @@ public class ChessPiece {
      * @return Collection of valid moves
      */
     public Collection<ChessMove> pieceMoves(ChessBoard board, ChessPosition myPosition) {
+        //Return all moves a piece can legally make, ignoring check/checkmate.
+        //Going to need helper classes like checkbounds and sliding pieces
+        //Must consider the board edges and friendly/enemy pieces.
         Collection<ChessMove> moves = new java.util.ArrayList<>();
 
         int row = myPosition.getRow();
         int col = myPosition.getColumn();
         //Make the list and get the position
+
+        switch (pieceType) {
+            //pawns can go forward 1 or 2 spaces and go diagonal to capture/kill
+            case PAWN -> {
+                //one step forward
+                int direction = (teamColor == ChessGame.TeamColor.WHITE) ? 1 : -1;
+                //See what direction the pawn in question should be moving (up if white vs down if black)
+                ChessPosition oneStep = new ChessPosition(row + direction, col);
+                //moving 1 row in that direction to target row if its on th board and the space if empty
+                if (isInBounds(oneStep) && board.getPiece(oneStep) == null) {
+                    moves.add(new ChessMove(myPosition, oneStep, null));
+                    //since all checks pass we can now use chessmove
+
+                    // 2 steps forward
+                    //here was have to check if the pawn is in the front row AND if the two spaces infront of it are on the board and empty, then we can use chesssmove.
+
+                    int startRow = (teamColor == ChessGame.TeamColor.WHITE) ? 2 : 7;
+                    ChessPosition twoStep = new ChessPosition(row + 2 * direction, col);
+                    if (row == startRow && board.getPiece(twoStep) == null) {
+                        moves.add(new ChessMove(myPosition, twoStep, null));
+                    }
+
+                }
+
+                // Handling Diagonal captures - has to be inbounds, empty, and an enemy color
+                int[] diagCols = {col - 1, col + 1}; //white vs black
+                for (int c : diagCols) {
+                    ChessPosition diag = new ChessPosition(row + direction, c); //only forward one row
+                    if (isInBounds(diag)) {
+                        ChessPiece target = board.getPiece(diag);
+                        if (target != null && target.getTeamColor() != teamColor) {
+                            moves.add(new ChessMove(myPosition, diag, null));
+                        }
+                    }
+                }
+            }
+
+            case KNIGHT -> {
+
+            }
+            //(row, col)
+            case BISHOP -> addSlidingMoves(board, myPosition, moves, new int[][]{{1,1},{1,-1},{-1,1},{-1,-1}});//all four diagonals
+            case ROOK -> addSlidingMoves(board, myPosition, moves, new int[][]{{1,0},{-1,0},{0,1},{0,-1}});//all four directions
+            case QUEEN -> addSlidingMoves(board, myPosition, moves, new int[][]{{1,0},{-1,0},{0,1},{0,-1},{1,1},{1,-1},{-1,1},{-1,-1}});//all four directions + four diagonals
+            //can move in all 8 directions like the queen but only one step
+            case KING -> {
+
+            }
+        }
         return moves;
     }
     //Now lets use override to refine the equals function, cause right now if says that positions with the same corrdinates are not equal when they should be.
