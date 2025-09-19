@@ -50,7 +50,7 @@ public class ChessBoard {
     public void resetBoard() {
 
         // Phase 1: not yet
-        throw new RuntimeException("Not implemented");
+
     }
     //Now lets use overide to refine the equals function, cause right now if says that positions with the same corrdinates are not equal when they should be.
 
