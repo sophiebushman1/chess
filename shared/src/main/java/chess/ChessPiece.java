@@ -11,9 +11,14 @@ import java.util.Objects;
  * signature of the existing methods.
  */
 public class ChessPiece {
+    private final ChessGame.TeamColor teamColor;
+    private final ChessPiece.PieceType pieceType;
 
     public ChessPiece(ChessGame.TeamColor pieceColor, ChessPiece.PieceType type) {
+        this.teamColor = pieceColor;
+        this.pieceType = type;
     }
+
 
     /**
      * The various different chess piece options
@@ -26,13 +31,6 @@ public class ChessPiece {
         ROOK,
         PAWN
     }
-    public enum TeamColor {
-        WHITE,
-        BLACK
-    }
-    private final TeamColor teamColor;
-    private final ChessPiece.PieceType pieceType;
-    //Chesspiece in front here?
     /**
      * @return Which team this chess piece belongs to
      */
