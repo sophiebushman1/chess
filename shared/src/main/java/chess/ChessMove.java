@@ -48,24 +48,29 @@ public class ChessMove {
 
         return promotionPiece;
     }
-    //Now lets use overide to refine the equals function, cause right now if says that positions with the same corrdinates are not equal when they should be.
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof ChessMove chessMove)) return false;
-        return Objects.equals(startPosition, chessMove.startPosition) &&
-                Objects.equals(endPosition, chessMove.endPosition) &&
-                promotionPiece == chessMove.promotionPiece;
+        if (!(o instanceof ChessMove chessMove)) {
+            return false;
+        }
+        return Objects.equals(startPosition, chessMove.startPosition) && Objects.equals(endPosition, chessMove.endPosition) && promotionPiece == chessMove.promotionPiece;
     }
-    // whenever you override equals(), you must override hashCode() so they agree.
+
     @Override
     public int hashCode() {
         return Objects.hash(startPosition, endPosition, promotionPiece);
     }
-    //tostring function so that we can see positions as more readable
+
     @Override
     public String toString() {
-        return startPosition + " -> " + endPosition + (promotionPiece != null ? " promote to " + promotionPiece : "");
+        return "ChessMove{" +
+                "startPosition=" + startPosition +
+                ", endPosition=" + endPosition +
+                ", promotionPiece=" + promotionPiece +
+                '}';
     }
+    //Now lets use overide to refine the equals function, cause right now if says that positions with the same corrdinates are not equal when they should be.
+
+
 }

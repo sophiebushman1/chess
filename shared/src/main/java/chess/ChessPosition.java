@@ -16,7 +16,7 @@ public class ChessPosition {
     public ChessPosition(int row, int col) {
         //Make sure the row and col passed in fit the board format
         if (row<1 || col<1) {
-            throw new IllegalArgumentException("rows and columns must be 1 or less than 1");
+            throw new IllegalArgumentException("rows and columns must be 1 or more than 1");
         }
         if (row>8 || col>8) {
             throw new IllegalArgumentException("rows and columns must be 8 or less than 8");
@@ -42,25 +42,30 @@ public class ChessPosition {
 
         return column;
     }
-    //Now lets use overide to refine the equals function, cause right now if says that positions with the same corrdinates are not equal when they should be.
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        ChessPosition that = (ChessPosition) o;
+        if (!(o instanceof ChessPosition that)) {
+            return false;
+        }
         return row == that.row && column == that.column;
     }
-    // whenever you override equals(), you must override hashCode() so they agree.
+
     @Override
     public int hashCode() {
         return Objects.hash(row, column);
     }
-    //tostring function so that we can see positions as more readable
+
     @Override
     public String toString() {
-        return "(" + row + "," + column + ")";
+        return "ChessPosition{" +
+                "row=" + row +
+                ", column=" + column +
+                '}';
     }
+    //Now lets use overide to refine the equals function, cause right now if says that positions with the same corrdinates are not equal when they should be.
+
+
 }
 
 

@@ -1,5 +1,6 @@
 package chess;
 
+import java.util.Arrays;
 import java.util.Objects;
 
 /**
@@ -81,35 +82,28 @@ public class ChessBoard {
         }
 
     }
-    //Now lets use overide to refine the equals function, cause right now if says that positions with the same corrdinates are not equal when they should be.
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof ChessBoard that)) return false;
-        return java.util.Arrays.deepEquals(board, that.board);
-
-
+        if (!(o instanceof ChessBoard that)) {
+            return false;
+        }
+        return Objects.deepEquals(board, that.board);
     }
-    // whenever you override equals(), you must override hashCode() so they agree.
+
     @Override
     public int hashCode() {
-        return Objects.hash(java.util.Arrays.deepHashCode(board));
+        return Arrays.deepHashCode(board);
     }
-    //tostring function so that we can see positions as more readable
+
     @Override
     public String toString() {
-        StringBuilder sb = new StringBuilder();
-        for (int row = 8; row >= 1; row--) {
-            for (int col = 1; col <= 8; col++) {
-                ChessPiece piece = getPiece(new ChessPosition(row, col));
-                sb.append(piece == null ? "." : piece.getPieceType().toString().charAt(0));
-                sb.append(" ");
-                // First letter of piece is printed with a space and period for readability
-            }
-            sb.append("\n");
-        }
-        return sb.toString();
+        return "ChessBoard{" +
+                "board=" + Arrays.toString(board) +
+                '}';
     }
+    //Now lets use overide to refine the equals function, cause right now if says that positions with the same corrdinates are not equal when they should be.
+
+
     //This to string loops through the whole board position by position top to bottom to build the current board with stringbuilder
 }
