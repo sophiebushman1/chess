@@ -13,18 +13,6 @@ public class ChessGame {
     private ChessBoard board;
     private TeamColor teamTurn;
 
-    @Override
-    public boolean equals(Object o) {
-        if (!(o instanceof ChessGame chessGame)) {
-            return false;
-        }
-        return Objects.equals(board, chessGame.board) && teamTurn == chessGame.teamTurn;
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(board, teamTurn);
-    }
 
     public ChessGame() {
         this.board = new ChessBoard();
@@ -56,6 +44,18 @@ public class ChessGame {
                 "board=" + board +
                 ", teamTurn=" + teamTurn +
                 '}';
+    }
+    @Override
+    public boolean equals(Object o) {
+        if (!(o instanceof ChessGame chessGame)) {
+            return false;
+        }
+        return Objects.equals(board, chessGame.board) && teamTurn == chessGame.teamTurn;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(board, teamTurn);
     }
 
     /**
