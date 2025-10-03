@@ -150,6 +150,20 @@ public class ChessGame {
         }
         return copy;
     }
+    private ChessBoard copyBoard(ChessBoard src) {
+        ChessBoard copy = new ChessBoard();
+        for (int r = 1; r <= 8; r++) {
+            for (int c = 1; c <= 8; c++) {
+                ChessPosition p = new ChessPosition(r, c);
+                ChessPiece cp = src.getPiece(p);
+                if (cp != null) {
+                    // create a fresh ChessPiece (team color + piece type) so copy independent.
+                    copy.addPiece(p, new ChessPiece(cp.getTeamColor(), cp.getPieceType()));
+                }
+            }
+        }
+        return copy;
+    }
 
     /**
      * Determines if the given team is in checkmate
