@@ -74,7 +74,28 @@ public class ChessGame {
      * startPosition
      */
     public Collection<ChessMove> validMoves(ChessPosition startPosition) {
-        throw new RuntimeException("Not implemented");
+        ChessPiece piece = board.getPiece(startPosition);
+        if (piece == null) {
+            return null; // no piece at this position
+        }
+
+        Collection<ChessMove> pieceMoves = piece.pieceMoves(board, startPosition);
+        Collection<ChessMove> legalMoves = new java.util.ArrayList<>();
+
+        // Filter out moves that leave the king in check
+        for (ChessMove move : pieceMoves) {
+            ChessBoard copyBoard = new ChessBoard(board); // make a copy constructor in ChessBoard
+            copyBoard.movePiece(move); // move piece on the copy
+            ChessGame testGame = new ChessGame();
+            testGame.setBoard(copyBoard);
+
+            if (!testGame.isInCheck(piece.getTeamColor())) {
+                legalMoves.add(move);
+            }
+        }
+
+        return legalMoves;
+
     }
 
     /**
