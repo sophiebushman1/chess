@@ -123,7 +123,38 @@ public class ChessGame {
      * @throws InvalidMoveException if move is invalid
      */
     public void makeMove(ChessMove move) throws InvalidMoveException {
+        if (move == null) throw new InvalidMoveException("Move is null");
 
+        ChessPosition start = move.getStartPosition();
+        ChessPosition end = move.getEndPosition();
+
+        ChessPiece piece = board.getPiece(start);
+        if (piece == null) {
+            throw new InvalidMoveException("No piece at start position.");
+        }
+
+        // check turn
+        if (piece.getTeamColor() != teamTurn) {
+            throw new InvalidMoveException("It is not " + piece.getTeamColor() + "'s turn.");
+        }
+
+        Collection<ChessMove> legal = validMoves(start);
+        if (legal == null || !legal.contains(move)) {
+            throw new InvalidMoveException("Move is not legal for this piece.");
+        }
+
+        // execute the move
+        ChessPiece movingPiece = board.getPiece(start);
+        board.addPiece(end, movingPiece);          // move or capture
+        board.addPiece(start, null);               // clear starting square
+
+        // promotion handling
+        if (move.getPromotionPiece() != null && movingPiece != null) {
+            board.addPiece(end, new ChessPiece(movingPiece.getTeamColor(), move.getPromotionPiece()));
+        }
+
+        // swap turn
+        teamTurn = (teamTurn == TeamColor.WHITE) ? TeamColor.BLACK : TeamColor.WHITE;
     }
 
     /**
@@ -133,7 +164,41 @@ public class ChessGame {
      * @return True if the specified team is in check
      */
     public boolean isInCheck(TeamColor teamColor) {
-        throw new RuntimeException("Not implemented");
+        // find king position
+        ChessPosition kingPos = null;
+        for (int r = 1; r <= 8; r++) {
+            for (int c = 1; c <= 8; c++) {
+                ChessPosition p = new ChessPosition(r, c);
+                ChessPiece cp = board.getPiece(p);
+                if (cp != null && cp.getTeamColor() == teamColor && cp.getPieceType() == ChessPiece.PieceType.KING) {
+                    kingPos = p;
+                    break;
+                }
+            }
+            if (kingPos != null) break;
+        }
+        if (kingPos == null) {
+            // No king found for the team; by definition not in check (or invalid board)
+            return false;
+        }
+
+        // check all opponent pieces' moves
+        TeamColor opponent = (teamColor == TeamColor.WHITE) ? TeamColor.BLACK : TeamColor.WHITE;
+        for (int r = 1; r <= 8; r++) {
+            for (int c = 1; c <= 8; c++) {
+                ChessPosition p = new ChessPosition(r, c);
+                ChessPiece cp = board.getPiece(p);
+                if (cp != null && cp.getTeamColor() == opponent) {
+                    Collection<ChessMove> moves = cp.pieceMoves(board, p);
+                    for (ChessMove m : moves) {
+                        if (m.getEndPosition().equals(kingPos)) {
+                            return true;
+                        }
+                    }
+                }
+            }
+        }
+        return false;
     }
 
     // Helper: deep-copy a board by cloning every piece into a fresh ChessBoard
