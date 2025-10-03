@@ -74,6 +74,7 @@ public class ChessGame {
      * startPosition
      */
     public Collection<ChessMove> validMoves(ChessPosition startPosition) {
+        if (startPosition == null) return null; // null check
         ChessPiece piece = board.getPiece(startPosition);
         if (piece == null) {
             return null; // no piece at this position
