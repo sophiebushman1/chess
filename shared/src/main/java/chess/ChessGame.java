@@ -1,5 +1,5 @@
 package chess;
-
+import java.util.*;
 import java.util.Collection;
 import java.util.Objects;
 
@@ -80,16 +80,34 @@ public class ChessGame {
         }
 
         Collection<ChessMove> pieceMoves = piece.pieceMoves(board, startPosition);
-        Collection<ChessMove> legalMoves = new java.util.ArrayList<>();
+        Collection<ChessMove> legalMoves = new ArrayList<>();
 
-        // Filter out moves that leave the king in check
+        // For each candidate move: simulate it on a deep copy of the board and
+        // check whether the moving piece's team would be in check afterward.
         for (ChessMove move : pieceMoves) {
-            ChessBoard copyBoard = new ChessBoard(board); // make a copy constructor in ChessBoard
-            copyBoard.movePiece(move); // move piece on the copy
+            ChessBoard copyBoard = deepCopyBoard(board);
+
+            // perform the move on the copy:
+            ChessPiece movingPiece = copyBoard.getPiece(move.getStartPosition());
+            // place on destination (capture automatically overwrites)
+            copyBoard.addPiece(move.getEndPosition(), movingPiece);
+            // clear the start square
+            copyBoard.addPiece(move.getStartPosition(), null);
+
+            // If there's a promotion, replace the piece at destination with the promoted piece
+            if (move.getPromotionPiece() != null && movingPiece != null) {
+                copyBoard.addPiece(move.getEndPosition(),
+                        new ChessPiece(movingPiece.getTeamColor(), move.getPromotionPiece()));
+            }
+
+            // Create a test game that uses the simulated board and ask if that team is in check
             ChessGame testGame = new ChessGame();
             testGame.setBoard(copyBoard);
+            // team for the moving piece:
+            TeamColor movingTeam = piece.getTeamColor();
 
-            if (!testGame.isInCheck(piece.getTeamColor())) {
+            // If the team is NOT in check after the move, it's legal
+            if (!testGame.isInCheck(movingTeam)) {
                 legalMoves.add(move);
             }
         }
@@ -105,7 +123,7 @@ public class ChessGame {
      * @throws InvalidMoveException if move is invalid
      */
     public void makeMove(ChessMove move) throws InvalidMoveException {
-        throw new RuntimeException("Not implemented");
+
     }
 
     /**
@@ -116,6 +134,21 @@ public class ChessGame {
      */
     public boolean isInCheck(TeamColor teamColor) {
         throw new RuntimeException("Not implemented");
+    }
+
+    // Helper: deep-copy a board by cloning every piece into a fresh ChessBoard
+    private ChessBoard deepCopyBoard(ChessBoard src) {
+        ChessBoard copy = new ChessBoard();
+        for (int r = 1; r <= 8; r++) {
+            for (int c = 1; c <= 8; c++) {
+                ChessPosition p = new ChessPosition(r, c);
+                ChessPiece cp = src.getPiece(p);
+                if (cp != null) {
+                    copy.addPiece(p, new ChessPiece(cp.getTeamColor(), cp.getPieceType()));
+                }
+            }
+        }
+        return copy;
     }
 
     /**
