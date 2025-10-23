@@ -3,7 +3,7 @@ package service;
 
 import dataaccess.DataAccess;
 import dataaccess.MemoryDAO;
-import model.AuthData;
+import model.*;
 import model.GameData;
 
 import org.junit.jupiter.api.BeforeEach;
