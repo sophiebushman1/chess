@@ -32,18 +32,16 @@ public class ChessPiece {
                     addPawnMove(moves, pos, new ChessPosition(oneRow, col));
                     // forward 2
                     int startRow = (teamColor == ChessGame.TeamColor.WHITE) ? 2 : 7;
-                    if (row == startRow && isEmpty(board, row + 2 * dir, col))
-                        moves.add(new ChessMove(pos, new ChessPosition(row + 2 * dir, col), null));
+                    if (row == startRow && isEmpty(board, row + 2*dir, col))
+                        moves.add(new ChessMove(pos, new ChessPosition(row + 2*dir, col), null));
                 }
-
                 // diagonal captures
-                for (int dc : new int[]{-1, 1}) {
+                for (int dc : new int[]{-1,1}) {
                     int nr = oneRow, nc = col + dc;
                     if (isEnemy(board, nr, nc))
                         addPawnMove(moves, pos, new ChessPosition(nr, nc));
                 }
             }
-
             case KNIGHT -> addOffsetMoves(board, pos, moves,
                     new int[][]{{2,1},{1,2},{-1,2},{-2,1},{-2,-1},{-1,-2},{1,-2},{2,-1}});
             case KING -> addOffsetMoves(board, pos, moves,
