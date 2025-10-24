@@ -1,99 +1,160 @@
 package service;
 
-import chess.ChessGame;
-import chess.ChessGame.TeamColor;
 import dataaccess.DataAccess;
 import dataaccess.DataAccessException;
 import model.AuthData;
 import model.GameData;
-import service.ServiceExceptions.AlreadyTakenException;
-import service.ServiceExceptions.BadRequestException;
-import service.ServiceExceptions.UnauthorizedException;
+import exception.AlreadyTakenException;
+import exception.BadRequestException;
+import exception.UnauthorizedException;
+import chess.ChessGame;
+import java.util.Collection;
+import java.util.Locale;
+import java.util.stream.Collectors;
 
+/**
+ * Service class responsible for managing chess games: creation, listing, and joining.
+ * This service handles business logic and delegates data persistence to the DataAccess layer.
+ */
 public class GameService {
-
     private final DataAccess dataAccess;
+
+    // --- Inner Records for Request/Response ---
+    public record GameInfo(int gameID, String whiteUsername, String blackUsername, String gameName) {}
+    public record CreateGameRequest(String gameName) {}
+    public record CreateGameResult(int gameID) {}
+    public record ListGamesResult(Collection<GameInfo> games) {}
+    public record JoinGameRequest(String playerColor, Integer gameID) {}
+    // ------------------------------------------
 
     public GameService(DataAccess dataAccess) {
         this.dataAccess = dataAccess;
     }
 
+    /**
+     * Private helper method to authorize a user based on the provided token.
+     * Throws UnauthorizedException (HTTP 401) if the token is invalid or missing.
+     */
     private AuthData authorize(String authToken) throws UnauthorizedException, DataAccessException {
+        if (authToken == null || authToken.isEmpty()) {
+            throw new UnauthorizedException("unauthorized");
+        }
         AuthData auth = dataAccess.getAuth(authToken);
         if (auth == null) {
-            throw new UnauthorizedException("Invalid authToken.");
+            throw new UnauthorizedException("unauthorized");
         }
         return auth;
     }
 
-    public ListGamesResult listGames(String authToken) throws UnauthorizedException, DataAccessException {
-        authorize(authToken);
-
-        return new ListGamesResult(dataAccess.listGames());
-    }
-
+    /**
+     * Creates a new game and returns its ID.
+     */
     public CreateGameResult createGame(String authToken, CreateGameRequest req)
-            throws BadRequestException, UnauthorizedException, DataAccessException {
+            throws UnauthorizedException, BadRequestException, DataAccessException {
 
         authorize(authToken);
 
+        // 1. Validate Request (400 Bad Request)
         if (req.gameName() == null || req.gameName().isEmpty()) {
-            throw new BadRequestException("Missing gameName.");
+            throw new BadRequestException("bad request");
         }
 
-        GameData newGameTemplate = new GameData(0, null, null, req.gameName(), null);
-        GameData newGame = dataAccess.createGame(newGameTemplate);
+        // 2. Create Game (ChessGame is initialized to the starting position)
+        GameData gameTemplate = new GameData(0, null, null, req.gameName(), new ChessGame());
+        GameData newGame = dataAccess.createGame(gameTemplate);
 
         return new CreateGameResult(newGame.gameID());
     }
 
+    /**
+     * Lists all available games.
+     */
+    public ListGamesResult listGames(String authToken)
+            throws UnauthorizedException, DataAccessException {
+
+        authorize(authToken);
+
+        Collection<GameData> games = dataAccess.listGames();
+
+        // Convert GameData models to the simplified GameInfo records
+        Collection<GameInfo> gameInfoList = games.stream()
+                .map(game -> new GameInfo(
+                        game.gameID(),
+                        game.whiteUsername(),
+                        game.blackUsername(),
+                        game.gameName()))
+                .collect(Collectors.toList());
+
+        return new ListGamesResult(gameInfoList);
+    }
+
+    /**
+     * Allows a user to join a game as a player (WHITE/BLACK) or an observer.
+     */
     public void joinGame(String authToken, JoinGameRequest req)
-            throws BadRequestException, UnauthorizedException, AlreadyTakenException, DataAccessException {
+            throws UnauthorizedException, BadRequestException, AlreadyTakenException, DataAccessException {
 
         AuthData auth = authorize(authToken);
         String username = auth.username();
 
-        if (req.gameID() == 0) {
-            throw new BadRequestException("Missing gameID.");
+        // 1. Validate Request (400 Bad Request if ID is missing or invalid)
+        if (req.gameID() == null || req.gameID() <= 0) {
+            throw new BadRequestException("bad request: missing gameID");
         }
 
-        GameData game = dataAccess.getGame(req.gameID());
-        if (game == null) {
-            throw new BadRequestException("Game not found.");
+        // 2. Get Game (400 Bad Request if game not found)
+        GameData existingGame = dataAccess.getGame(req.gameID());
+
+        if (existingGame == null) {
+            throw new BadRequestException("bad request: game not found");
         }
 
         String playerColor = req.playerColor();
-        String whiteUsername = game.whiteUsername();
-        String blackUsername = game.blackUsername();
 
-        if (playerColor != null) {
-            TeamColor color;
-            try {
-                color = TeamColor.valueOf(playerColor.toUpperCase());
-            } catch (IllegalArgumentException e) {
-                throw new BadRequestException("Invalid player color provided.");
-            }
-
-            if (color == TeamColor.WHITE) {
-                if (whiteUsername != null && !whiteUsername.equals(username)) {
-                    throw new AlreadyTakenException("White position already taken.");
-                }
-                whiteUsername = username;
-            } else if (color == TeamColor.BLACK) {
-                if (blackUsername != null && !blackUsername.equals(username)) {
-                    throw new AlreadyTakenException("Black position already taken.");
-                }
-                blackUsername = username;
-            }
+        // 3. Handle Joining Logic
+        if (playerColor == null || playerColor.isEmpty()) {
+            // Joining as an observer, no update to GameData needed.
+            return;
         }
 
-        GameData updatedGame = new GameData(
-                game.gameID(),
-                whiteUsername,
-                blackUsername,
-                game.gameName(),
-                game.game()
-        );
+        // Normalize color input
+        String normalizedColor = playerColor.toUpperCase(Locale.ROOT);
+        GameData updatedGame;
+
+        if ("WHITE".equals(normalizedColor)) {
+            // Check for Already Taken (403 Forbidden)
+            if (existingGame.whiteUsername() != null && !existingGame.whiteUsername().isEmpty() && !username.equals(existingGame.whiteUsername())) {
+                throw new AlreadyTakenException("spot already taken");
+            }
+            // Update the game with the new White player
+            updatedGame = new GameData(
+                    existingGame.gameID(),
+                    username,
+                    existingGame.blackUsername(),
+                    existingGame.gameName(),
+                    existingGame.game()
+            );
+        } else if ("BLACK".equals(normalizedColor)) {
+            // Check for Already Taken (403 Forbidden)
+            if (existingGame.blackUsername() != null && !existingGame.blackUsername().isEmpty() && !username.equals(existingGame.blackUsername())) {
+                throw new AlreadyTakenException("spot already taken");
+            }
+            // Update the game with the new Black player
+            updatedGame = new GameData(
+                    existingGame.gameID(),
+                    existingGame.whiteUsername(),
+                    username,
+                    existingGame.gameName(),
+                    existingGame.game()
+            );
+        } else {
+            // Invalid color provided (e.g., "RED") (400 Bad Request)
+            throw new BadRequestException("bad request: invalid player color");
+        }
+
+        // 4. Update Game to save the new player assignment
+        // This is where the persistence must happen. If this is failing, your updateGame
+        // implementation in DataAccess is the next place to look!
         dataAccess.updateGame(updatedGame);
     }
 }

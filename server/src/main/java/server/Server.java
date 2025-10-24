@@ -3,159 +3,224 @@ package server;
 import com.google.gson.Gson;
 import io.javalin.Javalin;
 import io.javalin.http.Context;
-import web.ErrorResponse;
-import service.UserService;
-import service.AuthResult;
-import service.LoginRequest;
-import service.RegisterRequest;
-import service.ServiceExceptions.*;
-import dataaccess.MemoryDAO;
-import chess.*;
+import io.javalin.http.InternalServerErrorResponse;
+import io.javalin.json.JsonMapper;
+import dataaccess.*;
+import model.*;
+import exception.*;
+import java.io.*;
+import java.lang.reflect.Type;
+import java.util.UUID;
 
 public class Server {
-
+    private final Gson gson = new Gson();
     private Javalin app;
-    private final UserService userService;
-
-    // --- No-arg constructor for Main ---
-    public Server() {
-        MemoryDAO dao = new MemoryDAO();
-        this.userService = new UserService(dao);
-    }
-
-    // --- Existing constructor ---
-    public Server(UserService userService) {
-        this.userService = userService;
-    }
+    private final DataAccess dataAccess = new MemoryDAO();
 
     public int run(int port) {
-        Gson gson = new Gson();
         app = Javalin.create(config -> {
-            config.jsonMapper(new GsonJavalinJsonMapper(gson));
+            config.jsonMapper(new GsonJsonMapper(gson));
             config.staticFiles.add(staticFiles -> staticFiles.directory = "/web");
         });
 
-        // Global Exception Handler
+        app.exception(ResponseException.class, (e, ctx) -> {
+            ctx.status(e.getStatusCode());
+            ctx.json(new ErrorResponse(e.getMessage()));
+        });
+
         app.exception(Exception.class, (e, ctx) -> {
             ctx.status(500);
             e.printStackTrace();
-            ctx.json(new ErrorResponse("Error: Internal server error: " + e.getMessage()));
+            ctx.json(new ErrorResponse("Error: Internal server error"));
         });
 
         app.before(ctx -> ctx.header("Access-Control-Allow-Origin", "*"));
 
-        // --- Existing endpoints ---
-        app.post("/user", this::handleRegister);
-        app.post("/session", this::handleLogin);
-        app.delete("/session", this::handleLogout);
-        app.delete("/db", this::handleClear);
-
-        // --- New /game endpoint ---
-        app.post("/game", this::handleCreateGame);
+        app.post("/user", this::registerUser);
+        app.post("/session", this::loginUser);
+        app.delete("/session", this::logoutUser);
+        app.post("/game", this::createGame);
+        app.get("/game", this::listGames);
+        app.put("/game", this::joinGame);
+        app.delete("/db", this::clearDB);
 
         app.start(port);
         return app.port();
     }
 
     public void stop() {
-        if (app != null) {
-            app.stop();
-            app = null;
-        }
+        if (app != null) app.stop();
     }
 
-    private void handleRegister(Context ctx) {
+    private void registerUser(Context ctx) throws ResponseException {
+        RegisterRequest req = ctx.bodyAsClass(RegisterRequest.class);
+        if (req.username() == null || req.password() == null || req.email() == null ||
+                req.username().isEmpty() || req.password().isEmpty() || req.email().isEmpty()) {
+            throw new BadRequestException("Error: bad request");
+        }
+
         try {
-            RegisterRequest req = ctx.bodyAsClass(RegisterRequest.class);
-            if (req.username() == null || req.password() == null || req.email() == null ||
-                    req.username().isEmpty() || req.password().isEmpty() || req.email().isEmpty()) {
-                ctx.status(400);
-                ctx.json(new ErrorResponse("Error: Missing username, password, or email."));
-                return;
+            if (dataAccess.getUser(req.username()) != null) {
+                throw new AlreadyTakenException();
             }
 
-            AuthResult result = userService.register(req);
+            dataAccess.createUser(new UserData(req.username(), req.password(), req.email()));
+            String token = UUID.randomUUID().toString();
+            dataAccess.createAuth(new AuthData(token, req.username()));
             ctx.status(200);
-            ctx.json(result);
-
-        } catch (BadRequestException e) {
-            ctx.status(400);
-            ctx.json(new ErrorResponse("Error: " + e.getMessage()));
-        } catch (AlreadyTakenException e) {
-            ctx.status(403);
-            ctx.json(new ErrorResponse("Error: " + e.getMessage()));
-        } catch (Exception e) {
-            ctx.status(500);
-            ctx.json(new ErrorResponse("Error: Internal server error: " + e.getMessage()));
+            ctx.json(new AuthResult(token, req.username()));
+        } catch (DataAccessException e) {
+            throw new ResponseException(500, "Error: " + e.getMessage());
         }
     }
 
-    private void handleLogin(Context ctx) {
+    private void loginUser(Context ctx) throws ResponseException {
+        LoginRequest req = ctx.bodyAsClass(LoginRequest.class);
+
+        // <<< FIX 1: Validate missing fields BEFORE data access calls
+        if (req.username() == null || req.password() == null ||
+                req.username().isEmpty() || req.password().isEmpty()) {
+            throw new BadRequestException("Error: bad request");
+        }
+        // >>> end fix
+
         try {
-            LoginRequest req = ctx.bodyAsClass(LoginRequest.class);
-            if (req.username() == null || req.password() == null ||
-                    req.username().isEmpty() || req.password().isEmpty()) {
-                ctx.status(400);
-                ctx.json(new ErrorResponse("Error: Missing username or password."));
-                return;
+            UserData user = dataAccess.getUser(req.username());
+            if (user == null || !user.password().equals(req.password())) {
+                throw new UnauthorizedException();
             }
 
-            AuthResult result = userService.login(req);
+            String token = UUID.randomUUID().toString();
+            dataAccess.createAuth(new AuthData(token, req.username()));
             ctx.status(200);
-            ctx.json(result);
-
-        } catch (BadRequestException e) {
-            ctx.status(400);
-            ctx.json(new ErrorResponse("Error: " + e.getMessage()));
-        } catch (UnauthorizedException e) {
-            ctx.status(401);
-            ctx.json(new ErrorResponse("Error: " + e.getMessage()));
-        } catch (Exception e) {
-            ctx.status(500);
-            ctx.json(new ErrorResponse("Error: Internal server error: " + e.getMessage()));
+            ctx.json(new AuthResult(token, req.username()));
+        } catch (DataAccessException e) {
+            throw new ResponseException(500, "Error: " + e.getMessage());
         }
     }
 
-    private void handleLogout(Context ctx) {
-        String authToken = ctx.header("authorization");
-        if (authToken == null || authToken.isEmpty()) {
-            ctx.status(401);
-            ctx.json(new ErrorResponse("Error: Missing or invalid auth token."));
-            return;
-        }
+    private void logoutUser(Context ctx) throws ResponseException {
+        String token = ctx.header("authorization");
+        if (token == null || token.isEmpty()) throw new UnauthorizedException();
 
         try {
-            userService.logout(authToken);
+            AuthData auth = dataAccess.getAuth(token);
+            if (auth == null) throw new UnauthorizedException();
+            dataAccess.deleteAuth(token);
             ctx.status(200);
-        } catch (UnauthorizedException e) {
-            ctx.status(401);
-            ctx.json(new ErrorResponse("Error: " + e.getMessage()));
-        } catch (Exception e) {
-            ctx.status(500);
-            ctx.json(new ErrorResponse("Error: Internal server error: " + e.getMessage()));
+        } catch (DataAccessException e) {
+            throw new ResponseException(500, "Error: " + e.getMessage());
         }
     }
 
-    private void handleClear(Context ctx) {
+    private void createGame(Context ctx) throws ResponseException {
         try {
-            userService.clear(); // calls DAO clear
+            String token = ctx.header("authorization");
+            if (token == null || dataAccess.getAuth(token) == null) throw new UnauthorizedException();
+
+            CreateGameRequest req = ctx.bodyAsClass(CreateGameRequest.class);
+            if (req.gameName() == null || req.gameName().isEmpty()) throw new BadRequestException("Error: bad request");
+
+            GameData created = dataAccess.createGame(new GameData(0, null, null, req.gameName(), new chess.ChessGame()));
             ctx.status(200);
-        } catch (Exception e) {
-            ctx.status(500);
-            ctx.json(new ErrorResponse("Error: Internal server error: " + e.getMessage()));
+            ctx.json(new CreateGameResult(created.gameID()));
+        } catch (DataAccessException e) {
+            throw new ResponseException(500, "Error: " + e.getMessage());
+        }
+    }
+    private void listGames(Context ctx) throws ResponseException {
+        String token = ctx.header("authorization");
+        try {
+            if (token == null || dataAccess.getAuth(token) == null) throw new UnauthorizedException();
+
+            var games = dataAccess.listGames().stream()
+                    .map(g -> new GameInfo(g.gameID(), g.whiteUsername(), g.blackUsername(), g.gameName()))
+                    .toArray(GameInfo[]::new);
+
+            ctx.status(200);
+            ctx.json(new ListGamesResult(games));
+        } catch (DataAccessException e) {
+            throw new ResponseException(500, "Error: " + e.getMessage());
         }
     }
 
-    // --- New /game handler ---
-    private void handleCreateGame(Context ctx) {
+    private void joinGame(Context ctx) throws ResponseException {
+        String token = ctx.header("authorization");
+        if (token == null) throw new UnauthorizedException();
+
         try {
-            // TODO: replace this with actual game creation logic if needed
-            ChessGame newGame = new ChessGame(); // placeholder class
-            ctx.status(201);
-            ctx.json(newGame);
-        } catch (Exception e) {
-            ctx.status(500);
-            ctx.json(new ErrorResponse("Error: " + e.getMessage()));
+            if (dataAccess.getAuth(token) == null) throw new UnauthorizedException();
+            JoinGameRequest req = ctx.bodyAsClass(JoinGameRequest.class);
+            // <<< FIX 2: Treat null/empty playerColor as BAD REQUEST per tests
+            if (req.playerColor() == null || req.playerColor().isEmpty()) {
+                throw new BadRequestException("Error: bad request");
+            }
+            // >>> end fix
+
+            GameData game = dataAccess.getGame(req.gameID());
+            if (game == null) throw new BadRequestException("Error: bad request");
+
+            String username = dataAccess.getAuth(token).username();
+            GameData updated;
+
+            if (req.playerColor().equalsIgnoreCase("WHITE")) {
+                if (game.whiteUsername() != null) throw new AlreadyTakenException();
+                updated = new GameData(game.gameID(), username, game.blackUsername(), game.gameName(), game.game());
+            } else if (req.playerColor().equalsIgnoreCase("BLACK")) {
+                if (game.blackUsername() != null) throw new AlreadyTakenException();
+                updated = new GameData(game.gameID(), game.whiteUsername(), username, game.gameName(), game.game());
+            } else {
+                throw new BadRequestException("Error: bad request");
+            }
+
+            dataAccess.updateGame(updated);
+            ctx.status(200);
+        } catch (DataAccessException e) {
+            throw new ResponseException(500, "Error: " + e.getMessage());
+        }
+    }
+
+    private void clearDB(Context ctx) {
+        try {
+            dataAccess.clear();
+            ctx.status(200);
+        } catch (DataAccessException e) {
+            ctx.status(500).json(new ErrorResponse("Error: " + e.getMessage()));
+        }
+    }
+
+    // --- Records and JSON Mapper unchanged ---
+    public record RegisterRequest(String username, String password, String email) {}
+    public record LoginRequest(String username, String password) {}
+    public record AuthResult(String authToken, String username) {}
+    public record CreateGameRequest(String gameName) {}
+    public record CreateGameResult(int gameID) {}
+    public record GameInfo(int gameID, String whiteUsername, String blackUsername, String gameName) {}
+    public record ListGamesResult(GameInfo[] games) {}
+    public record JoinGameRequest(String playerColor, int gameID) {}
+    public record ErrorResponse(String message) {}
+
+    private static class GsonJsonMapper implements JsonMapper {
+        private final Gson gson;
+        public GsonJsonMapper(Gson gson) { this.gson = gson; }
+
+        public <T> T fromJsonString(String json, Type type) { return gson.fromJson(json, type); }
+        public String toJsonString(Object obj, Type type) { return gson.toJson(obj, type); }
+
+        public <T> T fromJsonStream(InputStream json, Type type) {
+            try (InputStreamReader reader = new InputStreamReader(json)) {
+                return gson.fromJson(reader, type);
+            } catch (IOException e) {
+                throw new InternalServerErrorResponse("Invalid JSON");
+            }
+        }
+
+        public void toJsonStream(Object obj, Type type, OutputStream stream) {
+            try (OutputStreamWriter writer = new OutputStreamWriter(stream)) {
+                gson.toJson(obj, type, writer);
+            } catch (IOException e) {
+                throw new InternalServerErrorResponse("Error writing JSON");
+            }
         }
     }
 }
