@@ -11,6 +11,7 @@ import exception.*;
 import java.io.*;
 import java.lang.reflect.Type;
 import java.util.UUID;
+import org.mindrot.jbcrypt.BCrypt;
 
 public class Server {
     private final Gson gson = new Gson();
@@ -18,13 +19,11 @@ public class Server {
     private final DataAccess dataAccess;
 
     public Server() {
-        DataAccess dao;
         try {
-            dao = new SQLDataAccess();
+            this.dataAccess = new SQLDataAccess();
         } catch (DataAccessException e) {
-            throw new RuntimeException("Failed to initialize data access", e);
+            throw new RuntimeException("Failed to initialize SQLDataAccess", e);
         }
-        this.dataAccess = dao;
     }
 
     public int run(int port) {
@@ -87,6 +86,7 @@ public class Server {
     private void loginUser(Context ctx) throws ResponseException {
         LoginRequest req = ctx.bodyAsClass(LoginRequest.class);
 
+        // validate request before any DB calls
         if (req.username() == null || req.password() == null ||
                 req.username().isEmpty() || req.password().isEmpty()) {
             throw new BadRequestException("Error: bad request");
@@ -94,7 +94,8 @@ public class Server {
 
         try {
             UserData user = dataAccess.getUser(req.username());
-            if (user == null || !user.password().equals(req.password())) {
+            // compare provided password with hashed password in DB using BCrypt
+            if (user == null || !BCrypt.checkpw(req.password(), user.password())) {
                 throw new UnauthorizedException();
             }
 
@@ -136,7 +137,6 @@ public class Server {
             throw new ResponseException(500, "Error: " + e.getMessage());
         }
     }
-
     private void listGames(Context ctx) throws ResponseException {
         String token = ctx.header("authorization");
         try {
@@ -160,7 +160,7 @@ public class Server {
         try {
             if (dataAccess.getAuth(token) == null) throw new UnauthorizedException();
             JoinGameRequest req = ctx.bodyAsClass(JoinGameRequest.class);
-
+            // treat null/empty playerColor as bad request
             if (req.playerColor() == null || req.playerColor().isEmpty()) {
                 throw new BadRequestException("Error: bad request");
             }
@@ -196,6 +196,7 @@ public class Server {
             ctx.status(500).json(new ErrorResponse("Error: " + e.getMessage()));
         }
     }
+
 
     public record RegisterRequest(String username, String password, String email) {}
     public record LoginRequest(String username, String password) {}

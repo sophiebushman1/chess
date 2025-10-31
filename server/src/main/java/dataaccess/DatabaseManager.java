@@ -9,16 +9,12 @@ public class DatabaseManager {
     private static String dbPassword;
     private static String connectionUrl;
 
-    /*
-     * Load the database information for the db.properties file.
-     */
+
     static {
         loadPropertiesFromResources();
     }
 
-    /**
-     * Creates the database if it does not already exist.
-     */
+
     static public void createDatabase() throws DataAccessException {
         var statement = "CREATE DATABASE IF NOT EXISTS " + databaseName;
         try (var conn = DriverManager.getConnection(connectionUrl, dbUsername, dbPassword);
@@ -29,24 +25,9 @@ public class DatabaseManager {
         }
     }
 
-    /**
-     * Create a connection to the database and sets the catalog based upon the
-     * properties specified in db.properties. Connections to the database should
-     * be short-lived, and you must close the connection when you are done with it.
-     * The easiest way to do that is with a try-with-resource block.
-     * <br/>
-     * <code>
-     * try (var conn = DatabaseManager.getConnection()) {
-     * // execute SQL statements.
-     * }
-     * </code>
-     */
     static Connection getConnection() throws DataAccessException {
         try {
-            //do not wrap the following line with a try-with-resources
-            var conn = DriverManager.getConnection(connectionUrl, dbUsername, dbPassword);
-            conn.setCatalog(databaseName);
-            return conn;
+            return DriverManager.getConnection(connectionUrl, dbUsername, dbPassword);
         } catch (SQLException ex) {
             throw new DataAccessException("failed to get connection", ex);
         }
@@ -72,6 +53,7 @@ public class DatabaseManager {
 
         var host = props.getProperty("db.host");
         var port = Integer.parseInt(props.getProperty("db.port"));
-        connectionUrl = String.format("jdbc:mysql://%s:%d", host, port);
+        connectionUrl = String.format("jdbc:mysql://%s:%d/%s", host, port, databaseName);
+
     }
 }

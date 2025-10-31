@@ -7,7 +7,7 @@ import model.UserData;
 import exception.AlreadyTakenException;
 import exception.BadRequestException;
 import exception.UnauthorizedException;
-
+import org.mindrot.jbcrypt.BCrypt;
 import java.util.UUID;
 
 /**
@@ -63,7 +63,8 @@ public class UserService {
 
         UserData existingUser = dataAccess.getUser(req.username());
 
-        if (existingUser == null || !existingUser.password().equals(req.password())) {
+        // ✅ Use bcrypt verification
+        if (existingUser == null || !BCrypt.checkpw(req.password(), existingUser.password())) {
             throw new UnauthorizedException("unauthorized");
         }
 
@@ -73,6 +74,7 @@ public class UserService {
 
         return new AuthResult(existingUser.username(), authToken);
     }
+
 
     public void logout(String authToken)
             throws UnauthorizedException, DataAccessException {
