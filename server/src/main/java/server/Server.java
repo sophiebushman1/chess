@@ -14,7 +14,7 @@ import java.util.UUID;
 public class Server {
     private final Gson gson = new Gson();
     private Javalin app;
-    private final DataAccess dataAccess = new MemoryDAO();
+    private final DataAccess dataAccess = new SQLDataAccess();
 
     public int run(int port) {
         app = Javalin.create(config -> {
