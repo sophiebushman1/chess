@@ -13,8 +13,16 @@ public class AuthDAOTests {
         db.clear();
     }
 
+
+
+    @Test
+    public void getAuth_notFound_returnsNull() throws DataAccessException {
+        assertNull(db.getAuth("missingToken"));
+    }
+
     @Test
     public void createAuth_success() throws DataAccessException {
+        db.createUser(new model.UserData("sophia", "pw", "s@e.com")); // ✅ must exist
         AuthData auth = new AuthData("token123", "sophia");
         db.createAuth(auth);
 
@@ -24,18 +32,15 @@ public class AuthDAOTests {
     }
 
     @Test
-    public void getAuth_notFound_returnsNull() throws DataAccessException {
-        assertNull(db.getAuth("missingToken"));
-    }
-
-    @Test
     public void deleteAuth_success() throws DataAccessException {
+        db.createUser(new model.UserData("sophia", "pw", "s@e.com")); // ✅ must exist
         AuthData auth = new AuthData("token123", "sophia");
         db.createAuth(auth);
 
         db.deleteAuth("token123");
         assertNull(db.getAuth("token123"));
     }
+
 
     @Test
     public void deleteAuth_invalidToken_doesNothing() throws DataAccessException {
