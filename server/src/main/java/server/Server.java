@@ -1,5 +1,4 @@
 package server;
-
 import com.google.gson.Gson;
 import io.javalin.Javalin;
 import io.javalin.http.Context;
@@ -77,12 +76,12 @@ public class Server {
     private void loginUser(Context ctx) throws ResponseException {
         LoginRequest req = ctx.bodyAsClass(LoginRequest.class);
 
-        // <<< FIX 1: Validate missing fields BEFORE data access calls
+        // fix: validate before data access calls
         if (req.username() == null || req.password() == null ||
                 req.username().isEmpty() || req.password().isEmpty()) {
             throw new BadRequestException("Error: bad request");
         }
-        // >>> end fix
+
 
         try {
             UserData user = dataAccess.getUser(req.username());
@@ -151,11 +150,11 @@ public class Server {
         try {
             if (dataAccess.getAuth(token) == null) throw new UnauthorizedException();
             JoinGameRequest req = ctx.bodyAsClass(JoinGameRequest.class);
-            // <<< FIX 2: Treat null/empty playerColor as BAD REQUEST per tests
+            // treat null/empty playerColor as bad reqyest
             if (req.playerColor() == null || req.playerColor().isEmpty()) {
                 throw new BadRequestException("Error: bad request");
             }
-            // >>> end fix
+            // fix
 
             GameData game = dataAccess.getGame(req.gameID());
             if (game == null) throw new BadRequestException("Error: bad request");
@@ -189,7 +188,7 @@ public class Server {
         }
     }
 
-    // --- Records and JSON Mapper unchanged ---
+
     public record RegisterRequest(String username, String password, String email) {}
     public record LoginRequest(String username, String password) {}
     public record AuthResult(String authToken, String username) {}
