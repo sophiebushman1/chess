@@ -14,9 +14,19 @@ public class GameDAOTests {
         db.clear();
     }
 
+
+
+    @Test
+    public void getGame_invalidId_returnsNull() throws DataAccessException {
+        assertNull(db.getGame(999));
+    }
+
     @Test
     public void createGame_success() throws DataAccessException {
-        GameData game = new GameData(0, "white", "black", "CoolGame", new ChessGame());
+        db.createUser(new model.UserData("white", "pw", "w@e.com"));
+        db.createUser(new model.UserData("black", "pw", "b@e.com"));
+
+        GameData game = new GameData(0, "white", "black", "CoolGame", new chess.ChessGame());
         GameData created = db.createGame(game);
 
         assertNotNull(created);
@@ -28,13 +38,11 @@ public class GameDAOTests {
     }
 
     @Test
-    public void getGame_invalidId_returnsNull() throws DataAccessException {
-        assertNull(db.getGame(999));
-    }
-
-    @Test
     public void updateGame_success() throws DataAccessException {
-        GameData game = new GameData(0, null, null, "MyGame", new ChessGame());
+        // ✅ Add user so FK check passes
+        db.createUser(new model.UserData("whiteUser", "pw", "w@e.com"));
+
+        GameData game = new GameData(0, null, null, "MyGame", new chess.ChessGame());
         GameData created = db.createGame(game);
 
         GameData updated = new GameData(created.gameID(), "whiteUser", null, "MyGame", created.game());
@@ -43,4 +51,5 @@ public class GameDAOTests {
         GameData found = db.getGame(created.gameID());
         assertEquals("whiteUser", found.whiteUsername());
     }
+
 }

@@ -42,7 +42,9 @@ public class UserService {
         }
 
         // register user
-        UserData newUser = new UserData(req.username(), req.password(), req.email());
+        String hashedPassword = BCrypt.hashpw(req.password(), BCrypt.gensalt());
+        UserData newUser = new UserData(req.username(), hashedPassword, req.email());
+
         dataAccess.createUser(newUser);
 
         String authToken = UUID.randomUUID().toString();
@@ -63,17 +65,18 @@ public class UserService {
 
         UserData existingUser = dataAccess.getUser(req.username());
 
-        // ✅ Use bcrypt verification
-        if (existingUser == null || !BCrypt.checkpw(req.password(), existingUser.password())) {
+
+        if (existingUser == null || !org.mindrot.jbcrypt.BCrypt.checkpw(req.password(), existingUser.password())) {
             throw new UnauthorizedException("unauthorized");
         }
 
-        String authToken = UUID.randomUUID().toString();
+        String authToken = java.util.UUID.randomUUID().toString();
         AuthData newAuth = new AuthData(authToken, existingUser.username());
         dataAccess.createAuth(newAuth);
 
         return new AuthResult(existingUser.username(), authToken);
     }
+
 
 
     public void logout(String authToken)
