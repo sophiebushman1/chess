@@ -17,7 +17,6 @@ public class UserDAOTests {
     public void createUser_success() throws DataAccessException {
         UserData user = new UserData("sophia", "pass123", "soph@example.com");
         db.createUser(user);
-
         UserData found = db.getUser("sophia");
         assertNotNull(found);
         assertEquals("sophia", found.username());
@@ -27,9 +26,13 @@ public class UserDAOTests {
     public void createUser_duplicateUsername_fails() throws DataAccessException {
         UserData user = new UserData("sophia", "pass123", "soph@example.com");
         db.createUser(user);
+        assertThrows(DataAccessException.class, () -> db.createUser(user));
+    }
 
+    @Test
+    public void createUser_nullUsername_fails() {
         assertThrows(DataAccessException.class, () -> {
-            db.createUser(user);
+            db.createUser(new UserData(null, "pw", "email"));
         });
     }
 
