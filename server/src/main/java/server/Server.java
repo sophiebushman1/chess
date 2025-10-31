@@ -20,9 +20,11 @@ public class Server {
 
     public Server() {
         try {
-            this.dataAccess = new SQLDataAccess();
-        } catch (DataAccessException e) {
-            throw new RuntimeException("Failed to initialize SQLDataAccess", e);
+            DatabaseManager.createDatabase(); // ensure DB exists before DAO/connection attempts
+            this.dataAccess = new SQLDataAccess(); // use persistent DAO
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("Error initializing database", e);
         }
     }
 
@@ -70,12 +72,15 @@ public class Server {
 
         try {
             if (dataAccess.getUser(req.username()) != null) {
-                throw new AlreadyTakenException();
+                throw new AlreadyTakenException("Error: already taken");
             }
 
+            // no hash here
             dataAccess.createUser(new UserData(req.username(), req.password(), req.email()));
+
             String token = UUID.randomUUID().toString();
             dataAccess.createAuth(new AuthData(token, req.username()));
+
             ctx.status(200);
             ctx.json(new AuthResult(token, req.username()));
         } catch (DataAccessException e) {
@@ -86,7 +91,6 @@ public class Server {
     private void loginUser(Context ctx) throws ResponseException {
         LoginRequest req = ctx.bodyAsClass(LoginRequest.class);
 
-        // validate request before any DB calls
         if (req.username() == null || req.password() == null ||
                 req.username().isEmpty() || req.password().isEmpty()) {
             throw new BadRequestException("Error: bad request");
@@ -94,13 +98,15 @@ public class Server {
 
         try {
             UserData user = dataAccess.getUser(req.username());
-            // compare provided password with hashed password in DB using BCrypt
+
+            // user.password() = hashed password stored by SQLdataaccess
             if (user == null || !BCrypt.checkpw(req.password(), user.password())) {
-                throw new UnauthorizedException();
+                throw new UnauthorizedException("Error: unauthorized");
             }
 
             String token = UUID.randomUUID().toString();
             dataAccess.createAuth(new AuthData(token, req.username()));
+
             ctx.status(200);
             ctx.json(new AuthResult(token, req.username()));
         } catch (DataAccessException e) {
@@ -110,11 +116,11 @@ public class Server {
 
     private void logoutUser(Context ctx) throws ResponseException {
         String token = ctx.header("authorization");
-        if (token == null || token.isEmpty()) throw new UnauthorizedException();
+        if (token == null || token.isEmpty()) throw new UnauthorizedException("Error: unauthorized");
 
         try {
             AuthData auth = dataAccess.getAuth(token);
-            if (auth == null) throw new UnauthorizedException();
+            if (auth == null) throw new UnauthorizedException("Error: unauthorized");
             dataAccess.deleteAuth(token);
             ctx.status(200);
         } catch (DataAccessException e) {
@@ -125,22 +131,29 @@ public class Server {
     private void createGame(Context ctx) throws ResponseException {
         try {
             String token = ctx.header("authorization");
-            if (token == null || dataAccess.getAuth(token) == null) throw new UnauthorizedException();
+            if (token == null || dataAccess.getAuth(token) == null)
+                throw new UnauthorizedException("Error: unauthorized");
 
             CreateGameRequest req = ctx.bodyAsClass(CreateGameRequest.class);
-            if (req.gameName() == null || req.gameName().isEmpty()) throw new BadRequestException("Error: bad request");
+            if (req.gameName() == null || req.gameName().isEmpty())
+                throw new BadRequestException("Error: bad request");
 
-            GameData created = dataAccess.createGame(new GameData(0, null, null, req.gameName(), new chess.ChessGame()));
+            GameData created = dataAccess.createGame(
+                    new GameData(0, null, null, req.gameName(), new chess.ChessGame())
+            );
+
             ctx.status(200);
             ctx.json(new CreateGameResult(created.gameID()));
         } catch (DataAccessException e) {
             throw new ResponseException(500, "Error: " + e.getMessage());
         }
     }
+
     private void listGames(Context ctx) throws ResponseException {
         String token = ctx.header("authorization");
         try {
-            if (token == null || dataAccess.getAuth(token) == null) throw new UnauthorizedException();
+            if (token == null || dataAccess.getAuth(token) == null)
+                throw new UnauthorizedException("Error: unauthorized");
 
             var games = dataAccess.listGames().stream()
                     .map(g -> new GameInfo(g.gameID(), g.whiteUsername(), g.blackUsername(), g.gameName()))
@@ -155,27 +168,30 @@ public class Server {
 
     private void joinGame(Context ctx) throws ResponseException {
         String token = ctx.header("authorization");
-        if (token == null) throw new UnauthorizedException();
+        if (token == null) throw new UnauthorizedException("Error: unauthorized");
 
         try {
-            if (dataAccess.getAuth(token) == null) throw new UnauthorizedException();
+            if (dataAccess.getAuth(token) == null)
+                throw new UnauthorizedException("Error: unauthorized");
+
             JoinGameRequest req = ctx.bodyAsClass(JoinGameRequest.class);
-            // treat null/empty playerColor as bad request
-            if (req.playerColor() == null || req.playerColor().isEmpty()) {
+            if (req.playerColor() == null || req.playerColor().isEmpty())
                 throw new BadRequestException("Error: bad request");
-            }
 
             GameData game = dataAccess.getGame(req.gameID());
-            if (game == null) throw new BadRequestException("Error: bad request");
+            if (game == null)
+                throw new BadRequestException("Error: bad request");
 
             String username = dataAccess.getAuth(token).username();
             GameData updated;
 
             if (req.playerColor().equalsIgnoreCase("WHITE")) {
-                if (game.whiteUsername() != null) throw new AlreadyTakenException();
+                if (game.whiteUsername() != null)
+                    throw new AlreadyTakenException("Error: already taken");
                 updated = new GameData(game.gameID(), username, game.blackUsername(), game.gameName(), game.game());
             } else if (req.playerColor().equalsIgnoreCase("BLACK")) {
-                if (game.blackUsername() != null) throw new AlreadyTakenException();
+                if (game.blackUsername() != null)
+                    throw new AlreadyTakenException("Error: already taken");
                 updated = new GameData(game.gameID(), game.whiteUsername(), username, game.gameName(), game.game());
             } else {
                 throw new BadRequestException("Error: bad request");
@@ -196,7 +212,6 @@ public class Server {
             ctx.status(500).json(new ErrorResponse("Error: " + e.getMessage()));
         }
     }
-
 
     public record RegisterRequest(String username, String password, String email) {}
     public record LoginRequest(String username, String password) {}
