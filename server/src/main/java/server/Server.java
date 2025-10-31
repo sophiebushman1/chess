@@ -1,4 +1,5 @@
 package server;
+
 import com.google.gson.Gson;
 import io.javalin.Javalin;
 import io.javalin.http.Context;
@@ -14,7 +15,17 @@ import java.util.UUID;
 public class Server {
     private final Gson gson = new Gson();
     private Javalin app;
-    private final DataAccess dataAccess = new SQLDataAccess();
+    private final DataAccess dataAccess;
+
+    public Server() {
+        DataAccess dao;
+        try {
+            dao = new SQLDataAccess();
+        } catch (DataAccessException e) {
+            throw new RuntimeException("Failed to initialize data access", e);
+        }
+        this.dataAccess = dao;
+    }
 
     public int run(int port) {
         app = Javalin.create(config -> {
@@ -76,12 +87,10 @@ public class Server {
     private void loginUser(Context ctx) throws ResponseException {
         LoginRequest req = ctx.bodyAsClass(LoginRequest.class);
 
-        // fix: validate before data access calls
         if (req.username() == null || req.password() == null ||
                 req.username().isEmpty() || req.password().isEmpty()) {
             throw new BadRequestException("Error: bad request");
         }
-
 
         try {
             UserData user = dataAccess.getUser(req.username());
@@ -127,6 +136,7 @@ public class Server {
             throw new ResponseException(500, "Error: " + e.getMessage());
         }
     }
+
     private void listGames(Context ctx) throws ResponseException {
         String token = ctx.header("authorization");
         try {
@@ -150,11 +160,10 @@ public class Server {
         try {
             if (dataAccess.getAuth(token) == null) throw new UnauthorizedException();
             JoinGameRequest req = ctx.bodyAsClass(JoinGameRequest.class);
-            // treat null/empty playerColor as bad reqyest
+
             if (req.playerColor() == null || req.playerColor().isEmpty()) {
                 throw new BadRequestException("Error: bad request");
             }
-            // fix
 
             GameData game = dataAccess.getGame(req.gameID());
             if (game == null) throw new BadRequestException("Error: bad request");
@@ -187,7 +196,6 @@ public class Server {
             ctx.status(500).json(new ErrorResponse("Error: " + e.getMessage()));
         }
     }
-
 
     public record RegisterRequest(String username, String password, String email) {}
     public record LoginRequest(String username, String password) {}
