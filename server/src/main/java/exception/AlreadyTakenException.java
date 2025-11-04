@@ -1,7 +1,6 @@
 package exception;
+
 public class AlreadyTakenException extends ResponseException {
-
-
     public AlreadyTakenException(String message) {
         super(403, "Error: " + message);
     }
@@ -9,5 +8,4 @@ public class AlreadyTakenException extends ResponseException {
     public AlreadyTakenException() {
         this("already taken");
     }
-
 }

@@ -16,7 +16,7 @@ public class AuthDAOTests {
     }
 
     @Test
-    public void createAuth_success() throws DataAccessException {
+    public void createAuthSuccess() throws DataAccessException {
         AuthData auth = new AuthData("token123", "sophia");
         database.createAuth(auth);
         AuthData found = database.getAuth("token123");
@@ -25,19 +25,19 @@ public class AuthDAOTests {
     }
 
     @Test
-    public void createAuth_duplicateToken_fails() throws DataAccessException {
+    public void createAuthDuplicateTokenFails() throws DataAccessException {
         AuthData auth = new AuthData("token123", "sophia");
         database.createAuth(auth);
         assertThrows(DataAccessException.class, () -> database.createAuth(auth));
     }
 
     @Test
-    public void getAuth_notFound_returnsNull() throws DataAccessException {
+    public void getAuthNotFoundReturnsNull() throws DataAccessException {
         assertNull(database.getAuth("missingToken"));
     }
 
     @Test
-    public void deleteAuth_success() throws DataAccessException {
+    public void deleteAuthSuccess() throws DataAccessException {
         AuthData auth = new AuthData("token123", "sophia");
         database.createAuth(auth);
         database.deleteAuth("token123");
@@ -45,12 +45,12 @@ public class AuthDAOTests {
     }
 
     @Test
-    public void deleteAuth_invalidToken_noError() throws DataAccessException {
+    public void deleteAuthInvalidTokenNoError() throws DataAccessException {
         assertDoesNotThrow(() -> database.deleteAuth("doesNotExist"));
     }
 
     @Test
-    public void clear_removesAllAuths() throws DataAccessException {
+    public void clearRemovesAllAuths() throws DataAccessException {
         database.createAuth(new AuthData("token123", "sophia"));
         database.clear();
         assertNull(database.getAuth("token123"));

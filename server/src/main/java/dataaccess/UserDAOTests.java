@@ -14,7 +14,7 @@ public class UserDAOTests {
     }
 
     @Test
-    public void createUser_success() throws DataAccessException {
+    public void createUserSuccess() throws DataAccessException {
         UserData user = new UserData("sophia", "pass123", "soph@example.com");
         database.createUser(user);
         UserData found = database.getUser("sophia");
@@ -23,26 +23,26 @@ public class UserDAOTests {
     }
 
     @Test
-    public void createUser_duplicateUsername_fails() throws DataAccessException {
+    public void createUserDuplicateUsernameFails() throws DataAccessException {
         UserData user = new UserData("sophia", "pass123", "soph@example.com");
         database.createUser(user);
         assertThrows(DataAccessException.class, () -> database.createUser(user));
     }
 
     @Test
-    public void createUser_nullUsername_fails() {
+    public void createUserNullUsernameFails() {
         assertThrows(DataAccessException.class, () -> {
             database.createUser(new UserData(null, "pw", "email"));
         });
     }
 
     @Test
-    public void getUser_notFound_returnsNull() throws DataAccessException {
+    public void getUserNotFoundReturnsNull() throws DataAccessException {
         assertNull(database.getUser("missing"));
     }
 
     @Test
-    public void clear_removesAllUsers() throws DataAccessException {
+    public void clearRemovesAllUsers() throws DataAccessException {
         database.createUser(new UserData("sophia", "pw", "s@e.com"));
         database.clear();
         assertNull(database.getUser("sophia"));

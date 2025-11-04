@@ -1,11 +1,9 @@
 package exception;
 
-public class ResponseException extends Exception {
+public class ResponseException extends RuntimeException {
     private final int statusCode;
 
-
     public ResponseException(int statusCode, String message) {
-        // calls the parent
         super(message);
         this.statusCode = statusCode;
     }

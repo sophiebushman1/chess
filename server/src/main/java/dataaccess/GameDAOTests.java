@@ -18,7 +18,7 @@ public class GameDAOTests {
     }
 
     @Test
-    public void createGame_success() throws DataAccessException {
+    public void createGameSuccess() throws DataAccessException {
         GameData game = new GameData(0, "white", "black", "CoolGame", new chess.ChessGame());
         GameData created = database.createGame(game);
         assertNotNull(created);
@@ -26,7 +26,7 @@ public class GameDAOTests {
     }
 
     @Test
-    public void createGame_missingName_fails() {
+    public void createGameMissingNameFails() {
         assertThrows(DataAccessException.class, () -> {
             GameData bad = new GameData(0, "white", "black", null, new chess.ChessGame());
             database.createGame(bad);
@@ -34,12 +34,12 @@ public class GameDAOTests {
     }
 
     @Test
-    public void getGame_invalidId_returnsNull() throws DataAccessException {
+    public void getGameInvalidIdReturnsNull() throws DataAccessException {
         assertNull(database.getGame(999));
     }
 
     @Test
-    public void updateGame_success() throws DataAccessException {
+    public void updateGameSuccess() throws DataAccessException {
         GameData created = database.createGame(new GameData(0, null, null, "MyGame", new chess.ChessGame()));
         GameData updated = new GameData(created.gameID(), "white", null, "MyGame", created.game());
         database.updateGame(updated);
@@ -47,13 +47,13 @@ public class GameDAOTests {
     }
 
     @Test
-    public void updateGame_nonexistent_doesNothing() throws DataAccessException {
+    public void updateGameNonexistentDoesNothing() throws DataAccessException {
         GameData fake = new GameData(999, "white", null, "Nope", new chess.ChessGame());
         assertDoesNotThrow(() -> database.updateGame(fake));
     }
 
     @Test
-    public void listGames_returnsAll() throws DataAccessException {
+    public void listGamesReturnsAll() throws DataAccessException {
         database.createGame(new GameData(0, "white", "black", "Game1", new chess.ChessGame()));
         database.createGame(new GameData(0, "white", "black", "Game2", new chess.ChessGame()));
         Collection<GameData> games = database.listGames();
@@ -61,13 +61,13 @@ public class GameDAOTests {
     }
 
     @Test
-    public void listGames_empty_returnsEmpty() throws DataAccessException {
+    public void listGamesEmptyReturnsEmpty() throws DataAccessException {
         Collection<GameData> games = database.listGames();
         assertTrue(games.isEmpty());
     }
 
     @Test
-    public void clear_removesAllGames() throws DataAccessException {
+    public void clearRemovesAllGames() throws DataAccessException {
         database.createGame(new GameData(0, "white", "black", "Game1", new chess.ChessGame()));
         database.clear();
         assertTrue(database.listGames().isEmpty());
