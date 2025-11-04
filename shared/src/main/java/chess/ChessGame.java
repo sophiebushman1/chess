@@ -97,7 +97,9 @@ public class ChessGame {
 
     public boolean isInCheck(TeamColor teamColor) {
         ChessPosition kingPos = findKing(teamColor);
-        if (kingPos == null) return false;
+        if (kingPos == null){
+            return false;
+        }
 
         TeamColor opponent = (teamColor == TeamColor.WHITE) ? TeamColor.BLACK : TeamColor.WHITE;
         return isAttackedByOpponent(kingPos, opponent);
@@ -108,7 +110,9 @@ public class ChessGame {
                 ChessPosition pos = new ChessPosition(r, c);
                 ChessPiece piece = board.getPiece(pos);
                 if (piece != null && piece.getTeamColor() == opponent) {
-                    if (canAttackKing(piece, pos, kingPos)) return true;
+                    if (canAttackKing(piece, pos, kingPos)){
+                        return true;
+                    }
                 }
             }
         }
@@ -116,7 +120,9 @@ public class ChessGame {
     }
     private boolean canAttackKing(ChessPiece piece, ChessPosition from, ChessPosition kingPos) {
         for (ChessMove move : piece.pieceMoves(board, from)) {
-            if (move.getEndPosition().equals(kingPos)) return true;
+            if (move.getEndPosition().equals(kingPos)){
+                return true;
+            }
         }
         return false;
     }
