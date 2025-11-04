@@ -42,38 +42,22 @@ public class ChessGame {
     public enum TeamColor { WHITE, BLACK }
 
     public Collection<ChessMove> validMoves(ChessPosition startPosition) {
-        if (startPosition == null) {
-            return null;
-        }
+        if (startPosition == null) return null;
         ChessPiece piece = board.getPiece(startPosition);
-        if (piece == null) {
-            return null;
-        }
+        if (piece == null) return null;
 
         Collection<ChessMove> pieceMoves = piece.pieceMoves(board, startPosition);
         Collection<ChessMove> legalMoves = new ArrayList<>();
 
         for (ChessMove move : pieceMoves) {
-            ChessBoard copyBoard = deepCopyBoard(board);
-            ChessPiece movingPiece = copyBoard.getPiece(move.getStartPosition());
-            copyBoard.addPiece(move.getEndPosition(), movingPiece);
-            copyBoard.addPiece(move.getStartPosition(), null);
-
-            if (move.getPromotionPiece() != null && movingPiece != null) {
-                copyBoard.addPiece(move.getEndPosition(),
-                        new ChessPiece(movingPiece.getTeamColor(), move.getPromotionPiece()));
-            }
-
-            ChessGame testGame = new ChessGame();
-            testGame.setBoard(copyBoard);
-            TeamColor movingTeam = piece.getTeamColor();
-
-            if (!testGame.isInCheck(movingTeam)){
+            if (isMoveLegal(move, piece)) {
                 legalMoves.add(move);
             }
         }
+
         return legalMoves;
     }
+
 
     public void makeMove(ChessMove move) throws InvalidMoveException {
         if (move == null){
@@ -196,4 +180,20 @@ public class ChessGame {
         }
         return copy;
     }
+    private boolean isMoveLegal(ChessMove move, ChessPiece piece) {
+        ChessBoard copyBoard = deepCopyBoard(board);
+        ChessPiece movingPiece = copyBoard.getPiece(move.getStartPosition());
+        copyBoard.addPiece(move.getEndPosition(), movingPiece);
+        copyBoard.addPiece(move.getStartPosition(), null);
+
+        if (move.getPromotionPiece() != null && movingPiece != null) {
+            copyBoard.addPiece(move.getEndPosition(),
+                    new ChessPiece(movingPiece.getTeamColor(), move.getPromotionPiece()));
+        }
+
+        ChessGame testGame = new ChessGame();
+        testGame.setBoard(copyBoard);
+        return !testGame.isInCheck(piece.getTeamColor());
+    }
+
 }

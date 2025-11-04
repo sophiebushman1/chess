@@ -62,9 +62,12 @@ public class ChessPiece {
     private void addPawnMove(Collection<ChessMove> moves, ChessPosition from, ChessPosition to) {
         int r = to.getRow();
         if (r == 1 || r == 8) { // promotion
-            for (PieceType promo : new PieceType[]{PieceType.QUEEN, PieceType.ROOK, PieceType.BISHOP, PieceType.KNIGHT})
+            for (PieceType promo : new PieceType[]{PieceType.QUEEN, PieceType.ROOK, PieceType.BISHOP, PieceType.KNIGHT}){
                 moves.add(new ChessMove(from, to, promo));
-        } else moves.add(new ChessMove(from, to, null));
+            }
+        } else {
+            moves.add(new ChessMove(from, to, null));
+        }
     }
 
     private void addOffsetMoves(ChessBoard board, ChessPosition from, Collection<ChessMove> moves, int[][] offsets) {
