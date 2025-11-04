@@ -32,14 +32,16 @@ public class ChessPiece {
                     addPawnMove(moves, pos, new ChessPosition(oneRow, col));
                     // forward 2
                     int startRow = (teamColor == ChessGame.TeamColor.WHITE) ? 2 : 7;
-                    if (row == startRow && isEmpty(board, row + 2*dir, col))
-                        moves.add(new ChessMove(pos, new ChessPosition(row + 2*dir, col), null));
+                    if (row == startRow && isEmpty(board, row + 2*dir, col)) {
+                        moves.add(new ChessMove(pos, new ChessPosition(row + 2 * dir, col), null));
+                    }
                 }
                 // diagonal captures
                 for (int dc : new int[]{-1,1}) {
                     int nr = oneRow, nc = col + dc;
-                    if (isEnemy(board, nr, nc))
+                    if (isEnemy(board, nr, nc)) {
                         addPawnMove(moves, pos, new ChessPosition(nr, nc));
+                    }
                 }
             }
             case KNIGHT -> addOffsetMoves(board, pos, moves,
@@ -70,8 +72,9 @@ public class ChessPiece {
         for (int[] off : offsets) {
             int nr = r + off[0], nc = c + off[1];
             if (isInBounds(nr, nc) && (board.getPiece(new ChessPosition(nr,nc)) == null ||
-                    board.getPiece(new ChessPosition(nr,nc)).getTeamColor() != teamColor))
-                moves.add(new ChessMove(from, new ChessPosition(nr,nc), null));
+                    board.getPiece(new ChessPosition(nr,nc)).getTeamColor() != teamColor)) {
+                moves.add(new ChessMove(from, new ChessPosition(nr, nc), null));
+            }
         }
     }
 
@@ -82,9 +85,13 @@ public class ChessPiece {
             while (isInBounds(nr, nc)) {
                 ChessPosition p = new ChessPosition(nr, nc);
                 ChessPiece target = board.getPiece(p);
-                if (target == null) moves.add(new ChessMove(from, p, null));
+                if (target == null) {
+                    moves.add(new ChessMove(from, p, null));
+                }
                 else {
-                    if (target.getTeamColor() != teamColor) moves.add(new ChessMove(from, p, null));
+                    if (target.getTeamColor() != teamColor) {
+                        moves.add(new ChessMove(from, p, null));
+                    }
                     break;
                 }
                 nr += d[0]; nc += d[1];
@@ -96,7 +103,9 @@ public class ChessPiece {
         return isInBounds(r,c) && b.getPiece(new ChessPosition(r,c)) == null;
     }
     private boolean isEnemy(ChessBoard b, int r, int c) {
-        if (!isInBounds(r,c)) return false;
+        if (!isInBounds(r,c)) {
+            return false;
+        }
         ChessPiece p = b.getPiece(new ChessPosition(r,c));
         return p != null && p.getTeamColor() != teamColor;
     }

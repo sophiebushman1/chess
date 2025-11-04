@@ -102,8 +102,10 @@ public class ChessBoard {
                 "board=" + Arrays.toString(board) +
                 '}';
     }
-    //Now lets use overide to refine the equals function, cause right now if says that positions with the same corrdinates are not equal when they should be.
+    //Now lets use overide to refine the equals function, cause right now if says that positions
+    // with the same corrdinates are not equal when they should be.
 
 
-    //This to string loops through the whole board position by position top to bottom to build the current board with stringbuilder
+    //This to string loops through the whole board position by position top to bottom to
+    // build the current board with stringbuilder
 }

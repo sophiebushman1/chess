@@ -60,19 +60,19 @@ public class Server {
     }
 
     public void stop() {
-        if (app != null) app.stop();
+        if (app != null) {
+            app.stop();
+        }
     }
 
     private void registerUser(Context ctx) throws ResponseException {
         RegisterRequest req = ctx.bodyAsClass(RegisterRequest.class);
         requireNonEmpty(req.username(), req.password(), req.email());
-
         try {
-            if (dataAccess.getUser(req.username()) != null)
+            if (dataAccess.getUser(req.username()) != null) {
                 throw new AlreadyTakenException("Error: already taken");
-
+            }
             dataAccess.createUser(new UserData(req.username(), req.password(), req.email()));
-
             String token = createAuthToken(req.username());
             ctx.status(200).json(new AuthResult(token, req.username()));
         } catch (DataAccessException e) {
@@ -83,12 +83,11 @@ public class Server {
     private void loginUser(Context ctx) throws ResponseException {
         LoginRequest req = ctx.bodyAsClass(LoginRequest.class);
         requireNonEmpty(req.username(), req.password());
-
         try {
             UserData user = dataAccess.getUser(req.username());
-            if (user == null || !BCrypt.checkpw(req.password(), user.password()))
+            if (user == null || !BCrypt.checkpw(req.password(), user.password())) {
                 throw new UnauthorizedException("Error: unauthorized");
-
+            }
             String token = createAuthToken(req.username());
             ctx.status(200).json(new AuthResult(token, req.username()));
         } catch (DataAccessException e) {
@@ -99,9 +98,9 @@ public class Server {
     private void logoutUser(Context ctx) throws ResponseException {
         String token = requireAuth(ctx);
         try {
-            if (dataAccess.getAuth(token) == null)
+            if (dataAccess.getAuth(token) == null) {
                 throw new UnauthorizedException("Error: unauthorized");
-
+            }
             dataAccess.deleteAuth(token);
             ctx.status(200);
         } catch (DataAccessException e) {
@@ -134,7 +133,6 @@ public class Server {
             var games = dataAccess.listGames().stream()
                     .map(g -> new GameInfo(g.gameID(), g.whiteUsername(), g.blackUsername(), g.gameName()))
                     .toArray(GameInfo[]::new);
-
             ctx.status(200).json(new ListGamesResult(games));
         } catch (DataAccessException e) {
             throw new ResponseException(500, "Error: " + e.getMessage());
@@ -150,23 +148,20 @@ public class Server {
 
         try {
             GameData game = dataAccess.getGame(req.gameID());
-            if (game == null) throw new BadRequestException("Error: bad request");
+            if (game == null) { throw new BadRequestException("Error: bad request"); }
 
             String username = dataAccess.getAuth(token).username();
             GameData updated = switch (req.playerColor().toUpperCase()) {
                 case "WHITE" -> {
-                    if (game.whiteUsername() != null)
-                        throw new AlreadyTakenException("Error: already taken");
+                    if (game.whiteUsername() != null) { throw new AlreadyTakenException("Error: already taken"); }
                     yield new GameData(game.gameID(), username, game.blackUsername(), game.gameName(), game.game());
                 }
                 case "BLACK" -> {
-                    if (game.blackUsername() != null)
-                        throw new AlreadyTakenException("Error: already taken");
+                    if (game.blackUsername() != null) { throw new AlreadyTakenException("Error: already taken"); }
                     yield new GameData(game.gameID(), game.whiteUsername(), username, game.gameName(), game.game());
                 }
                 default -> throw new BadRequestException("Error: bad request");
             };
-
             dataAccess.updateGame(updated);
             ctx.status(200);
         } catch (DataAccessException e) {
@@ -191,17 +186,13 @@ public class Server {
 
     private String requireAuth(Context ctx) throws ResponseException {
         String token = ctx.header("authorization");
-        if (token == null || token.isEmpty()) {
-            throw new UnauthorizedException("Error: unauthorized");
-        }
+        if (token == null || token.isEmpty()) { throw new UnauthorizedException("Error: unauthorized"); }
         return token;
     }
 
     private void requireValidAuth(String token) throws ResponseException {
         try {
-            if (dataAccess.getAuth(token) == null) {
-                throw new UnauthorizedException("Error: unauthorized");
-            }
+            if (dataAccess.getAuth(token) == null) { throw new UnauthorizedException("Error: unauthorized"); }
         } catch (DataAccessException e) {
             throw new ResponseException(500, "Error: " + e.getMessage());
         }
@@ -215,7 +206,7 @@ public class Server {
         }
     }
 
-
+    // Records
     public record RegisterRequest(String username, String password, String email) {}
     public record LoginRequest(String username, String password) {}
     public record AuthResult(String authToken, String username) {}
@@ -226,6 +217,7 @@ public class Server {
     public record JoinGameRequest(String playerColor, int gameID) {}
     public record ErrorResponse(String message) {}
 
+    // JSON Mapper
     private static class GsonJsonMapper implements JsonMapper {
         private final Gson gson;
         public GsonJsonMapper(Gson gson) { this.gson = gson; }
@@ -236,17 +228,13 @@ public class Server {
         public <T> T fromJsonStream(InputStream json, Type type) {
             try (InputStreamReader reader = new InputStreamReader(json)) {
                 return gson.fromJson(reader, type);
-            } catch (IOException e) {
-                throw new InternalServerErrorResponse("Invalid JSON");
-            }
+            } catch (IOException e) { throw new InternalServerErrorResponse("Invalid JSON"); }
         }
 
         public void toJsonStream(Object obj, Type type, OutputStream stream) {
             try (OutputStreamWriter writer = new OutputStreamWriter(stream)) {
                 gson.toJson(obj, type, writer);
-            } catch (IOException e) {
-                throw new InternalServerErrorResponse("Error writing JSON");
-            }
+            } catch (IOException e) { throw new InternalServerErrorResponse("Error writing JSON"); }
         }
     }
 }

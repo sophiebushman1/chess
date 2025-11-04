@@ -11,7 +11,8 @@ import java.util.Objects;
 public class ChessPosition {
     private final int row;
     private final int column;
-    //Rows and columns are 1-8 where column 1 is left and row 1 is bottom. This sets up our row and column variable that will eventually be returned
+    //Rows and columns are 1-8 where column 1 is left and row 1 is bottom.
+    // This sets up our row and column variable that will eventually be returned
 
     public ChessPosition(int row, int col) {
         //Make sure the row and col passed in fit the board format
@@ -63,7 +64,8 @@ public class ChessPosition {
                 ", column=" + column +
                 '}';
     }
-    //Now lets use overide to refine the equals function, cause right now if says that positions with the same corrdinates are not equal when they should be.
+    //Now lets use overide to refine the equals function, cause right now if says that
+    // positions with the same corrdinates are not equal when they should be.
 
 
 }

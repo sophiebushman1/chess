@@ -54,7 +54,8 @@ public class ChessMove {
         if (!(o instanceof ChessMove chessMove)) {
             return false;
         }
-        return Objects.equals(startPosition, chessMove.startPosition) && Objects.equals(endPosition, chessMove.endPosition) && promotionPiece == chessMove.promotionPiece;
+        return Objects.equals(startPosition, chessMove.startPosition) && Objects.equals(endPosition, chessMove.endPosition) &&
+                promotionPiece == chessMove.promotionPiece;
     }
 
     @Override
@@ -70,7 +71,8 @@ public class ChessMove {
                 ", promotionPiece=" + promotionPiece +
                 '}';
     }
-    //Now lets use overide to refine the equals function, cause right now if says that positions with the same corrdinates are not equal when they should be.
+    //Now lets use overide to refine the equals function, cause right now if says that positions
+    // with the same corrdinates are not equal when they should be.
 
 
 }
