@@ -10,82 +10,67 @@ import exception.UnauthorizedException;
 import org.mindrot.jbcrypt.BCrypt;
 import java.util.UUID;
 
-/**
- * Service class responsible for user registration, login, and logout.
- */
 public class UserService {
     private final DataAccess dataAccess;
 
-    // --- Inner Records for Request/Response (Can be moved to separate files if needed) ---
     public record RegisterRequest(String username, String password, String email) {}
     public record LoginRequest(String username, String password) {}
     public record AuthResult(String username, String authToken) {}
-
 
     public UserService(DataAccess dataAccess) {
         this.dataAccess = dataAccess;
     }
 
-
     public AuthResult register(RegisterRequest req)
             throws BadRequestException, AlreadyTakenException, DataAccessException {
+        requireNonEmpty(req.username(), req.password(), req.email());
 
-
-        if (req.username() == null || req.password() == null || req.email() == null ||
-                req.username().isEmpty() || req.password().isEmpty() || req.email().isEmpty()) {
-            throw new BadRequestException("bad request");
-        }
-
-        // 403
         if (dataAccess.getUser(req.username()) != null) {
             throw new AlreadyTakenException("already taken");
         }
 
-        // register user
         String hashedPassword = BCrypt.hashpw(req.password(), BCrypt.gensalt());
-        UserData newUser = new UserData(req.username(), hashedPassword, req.email());
+        dataAccess.createUser(new UserData(req.username(), hashedPassword, req.email()));
 
-        dataAccess.createUser(newUser);
+        String token = UUID.randomUUID().toString();
+        dataAccess.createAuth(new AuthData(token, req.username()));
 
-        String authToken = UUID.randomUUID().toString();
-        AuthData newAuth = new AuthData(authToken, req.username());
-        dataAccess.createAuth(newAuth);
-
-        return new AuthResult(req.username(), authToken);
+        return new AuthResult(req.username(), token);
     }
-
 
     public AuthResult login(LoginRequest req)
             throws UnauthorizedException, BadRequestException, DataAccessException {
+        requireNonEmpty(req.username(), req.password());
 
-        if (req.username() == null || req.password() == null ||
-                req.username().isEmpty() || req.password().isEmpty()) {
-            throw new BadRequestException("bad request");
-        }
-
-        UserData existingUser = dataAccess.getUser(req.username());
-
-
-        if (existingUser == null || !org.mindrot.jbcrypt.BCrypt.checkpw(req.password(), existingUser.password())) {
+        UserData user = dataAccess.getUser(req.username());
+        if (user == null || !BCrypt.checkpw(req.password(), user.password())) {
             throw new UnauthorizedException("unauthorized");
         }
 
-        String authToken = java.util.UUID.randomUUID().toString();
-        AuthData newAuth = new AuthData(authToken, existingUser.username());
-        dataAccess.createAuth(newAuth);
+        String token = UUID.randomUUID().toString();
+        dataAccess.createAuth(new AuthData(token, user.username()));
 
-        return new AuthResult(existingUser.username(), authToken);
+        return new AuthResult(user.username(), token);
     }
 
-
-
-    public void logout(String authToken)
+    public void logout(String token)
             throws UnauthorizedException, DataAccessException {
+        requireValidAuth(token);
+        dataAccess.deleteAuth(token);
+    }
 
-        if (authToken == null || authToken.isEmpty() || dataAccess.getAuth(authToken) == null) {
+    private void requireNonEmpty(String... fields) throws BadRequestException {
+        for (String f : fields) {
+            if (f == null || f.isEmpty()) {
+                throw new BadRequestException("bad request");
+            }
+        }
+    }
+
+    private void requireValidAuth(String token)
+            throws UnauthorizedException, DataAccessException {
+        if (token == null || token.isEmpty() || dataAccess.getAuth(token) == null) {
             throw new UnauthorizedException("unauthorized");
         }
-
-        dataAccess.deleteAuth(authToken);
     }
 }
