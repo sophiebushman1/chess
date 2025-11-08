@@ -1,9 +1,6 @@
 package ui;
 
 import client.ServerFacade;
-import service.CreateGameRequest;
-import service.JoinGameRequest;
-import model.UserData;
 
 public class ChessClient {
     private final ServerFacade server;
