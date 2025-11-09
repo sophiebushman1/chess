@@ -1,27 +1,18 @@
 package client;
 
 import org.junit.jupiter.api.*;
-import server.Server;
 import static org.junit.jupiter.api.Assertions.*;
 
-public class ServerFacadeTests {
+@TestMethodOrder(MethodOrderer.MethodName.class)
+public class ServerFacadeTest {
 
-    private static Server server;
     private static ServerFacade facade;
-    private static int port;
+    private static final int port = 2400;
 
     @BeforeAll
     public static void init() {
-        server = new Server();
-        port = server.run(0);
-        System.out.println("Started test HTTP server on " + port);
         facade = new ServerFacade(port);
-    }
-
-    @AfterAll
-    static void stopServer() {
-        server.stop();
-        System.out.println("Stopped server");
+        System.out.println("Initialized ServerFacade for tests on port " + port);
     }
 
     @BeforeEach
@@ -92,6 +83,7 @@ public class ServerFacadeTests {
         assertEquals(200, facade.getStatusCode());
         assertNull(join.getMessage(), "joinGame should succeed with no message");
     }
+
     @Test
     @DisplayName("Join Game Fails with Invalid Game ID")
     public void joinGameInvalidID() {
@@ -100,7 +92,6 @@ public class ServerFacadeTests {
         assertNotEquals(200, facade.getStatusCode());
         assertTrue(join.getMessage().toLowerCase().contains("error") || join.getMessage().toLowerCase().contains("invalid"));
     }
-
 
     @Test
     @DisplayName("Logout Works")
