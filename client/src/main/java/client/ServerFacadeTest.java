@@ -7,12 +7,12 @@ import static org.junit.jupiter.api.Assertions.*;
 public class ServerFacadeTest {
 
     private static ServerFacade facade;
-    private static final int port = 2400;
+    private static final int PORT = 2400;
 
     @BeforeAll
     public static void init() {
-        facade = new ServerFacade(port);
-        System.out.println("Initialized ServerFacade for tests on port " + port);
+        facade = new ServerFacade(PORT);
+        System.out.println("Initialized ServerFacade for tests on port " + PORT);
     }
 
     @BeforeEach
