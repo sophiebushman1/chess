@@ -84,14 +84,18 @@ public class ServerFacade {
             }
             GameInfo g = (GameInfo) o;
             return gameID == g.gameID
-                    && ((whiteUsername == null && g.whiteUsername == null) || (whiteUsername != null && whiteUsername.equals(g.whiteUsername)))
-                    && ((blackUsername == null && g.blackUsername == null) || (blackUsername != null && blackUsername.equals(g.blackUsername)))
-                    && ((gameName == null && g.gameName == null) || (gameName != null && gameName.equals(g.gameName)));
+                    && ((whiteUsername == null && g.whiteUsername == null) || (whiteUsername
+                    != null && whiteUsername.equals(g.whiteUsername)))
+                    && ((blackUsername == null && g.blackUsername == null) || (blackUsername
+                    != null && blackUsername.equals(g.blackUsername)))
+                    && ((gameName == null && g.gameName == null) || (gameName
+                    != null && gameName.equals(g.gameName)));
         }
 
         @Override
         public int hashCode() {
-            return Integer.hashCode(gameID) ^ (whiteUsername == null ? 0 : whiteUsername.hashCode()) ^ (blackUsername == null ? 0 : blackUsername.hashCode());
+            return Integer.hashCode(gameID) ^ (whiteUsername == null ? 0 : whiteUsername.hashCode()) ^ (blackUsername
+                    == null ? 0 : blackUsername.hashCode());
         }
     }
 
