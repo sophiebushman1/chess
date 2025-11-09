@@ -220,27 +220,31 @@ public class Server {
     // JSON Mapper
     private static class GsonJsonMapper implements JsonMapper {
         private final Gson gson;
-        public GsonJsonMapper(Gson gson) { this.gson = gson; }
 
-        @SuppressWarnings("unused")
-        public <T> T fromJsonString(String json, Type type) { return gson.fromJson(json, type); }
+        public GsonJsonMapper(Gson gson) {
+            this.gson = gson;
+        }
 
-        @SuppressWarnings("unused")
-        public String toJsonString(Object obj, Type type) { return gson.toJson(obj, type); }
+        @Override
+        public <T> T fromJsonString(String json, Type type) {
+            return gson.fromJson(json, type);
+        }
 
-        @SuppressWarnings("unused")
+        @Override
+        public String toJsonString(Object obj, Type type) {
+            return gson.toJson(obj, type);
+        }
+
+        @Override
         public <T> T fromJsonStream(InputStream json, Type type) {
             try (InputStreamReader reader = new InputStreamReader(json)) {
                 return gson.fromJson(reader, type);
-            } catch (IOException e) { throw new InternalServerErrorResponse("Invalid JSON"); }
+            } catch (IOException e) {
+                throw new InternalServerErrorResponse("Invalid JSON");
+            }
         }
 
-        @SuppressWarnings("unused")
-        public void toJsonStream(Object obj, Type type, OutputStream stream) {
-            try (OutputStreamWriter writer = new OutputStreamWriter(stream)) {
-                gson.toJson(obj, type, writer);
-            } catch (IOException e) { throw new InternalServerErrorResponse("Error writing JSON"); }
-        }
     }
+
 
 }
