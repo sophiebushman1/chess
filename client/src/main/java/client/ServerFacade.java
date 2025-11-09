@@ -260,6 +260,25 @@ public class ServerFacade {
     public GenericResult clear() {
         return doGenericRequest("DELETE", "/db", null, null);
     }
+    private GenericResult doGenericRequest(String method, String path, String body, String authToken) {
+        try {
+            String resp = doRequest(method, path, body, authToken);
+            GenericResult r = new GenericResult();
+            if (lastStatusCode == 200) {
+                r.message = null;
+            } else {
+                ErrorResponse err = gson.fromJson(resp, ErrorResponse.class);
+                r.message = err == null ? resp : err.getMessage();
+            }
+            return r;
+        } catch (IOException e) {
+            GenericResult r = new GenericResult();
+            r.message = "Error: " + e.getMessage();
+            lastStatusCode = 500;
+            return r;
+        }
+    }
+
 
 
 
