@@ -1,7 +1,6 @@
 package client;
 
 import com.google.gson.Gson;
-
 import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -193,9 +192,6 @@ public class ServerFacade {
         }
     }
 
-    /**
-     * POST /game
-     */
     public CreateGameResult createGame(String gameName, String authToken) {
         var req = new SimpleJson();
         req.put("gameName", gameName);
@@ -219,9 +215,6 @@ public class ServerFacade {
         }
     }
 
-    /**
-     * GET /game
-     */
     public ListGamesResult listGames(String authToken) {
         try {
             String resp = doRequest("GET", "/game", null, authToken);
@@ -279,9 +272,6 @@ public class ServerFacade {
         }
     }
 
-
-
-
     private String doRequest(String method, String path, String body, String authHeader) throws IOException {
         URL url = new URL(baseUrl + path);
         HttpURLConnection conn = (HttpURLConnection) url.openConnection();
@@ -323,7 +313,7 @@ public class ServerFacade {
         }
     }
 
-    //helper
+    //helper function
     private static void setFieldIfExists(Object obj, String fieldName, String value) {
         try {
             var f = obj.getClass().getDeclaredField(fieldName);

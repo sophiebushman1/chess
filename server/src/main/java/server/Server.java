@@ -217,7 +217,7 @@ public class Server {
     public record JoinGameRequest(String playerColor, int gameID) {}
     public record ErrorResponse(String message) {}
 
-    // JSON Mapper
+    // JSON Mapper - fixed
     private static class GsonJsonMapper implements JsonMapper {
         private final Gson gson;
 
@@ -245,6 +245,4 @@ public class Server {
         }
 
     }
-
-
 }
