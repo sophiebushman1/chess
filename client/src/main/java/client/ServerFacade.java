@@ -254,43 +254,13 @@ public class ServerFacade {
         var req = new SimpleJson();
         req.put("playerColor", playerColor);
         req.put("gameID", gameID);
-        try {
-            String resp = doRequest("PUT", "/game", gson.toJson(req), authToken);
-            GenericResult r = new GenericResult();
-            if (lastStatusCode == 200) {
-                r.message = null;
-            } else {
-                ErrorResponse err = gson.fromJson(resp, ErrorResponse.class);
-                r.message = err == null ? resp : err.getMessage();
-            }
-            return r;
-        } catch (IOException e) {
-            GenericResult r = new GenericResult();
-            r.message = "Error: " + e.getMessage();
-            lastStatusCode = 500;
-            return r;
-        }
+        return doGenericRequest("PUT", "/game", gson.toJson(req), authToken);
     }
-
 
     public GenericResult clear() {
-        try {
-            String resp = doRequest("DELETE", "/db", null, null);
-            GenericResult r = new GenericResult();
-            if (lastStatusCode == 200) {
-                r.message = null;
-            } else {
-                ErrorResponse err = gson.fromJson(resp, ErrorResponse.class);
-                r.message = err == null ? resp : err.getMessage();
-            }
-            return r;
-        } catch (IOException e) {
-            GenericResult r = new GenericResult();
-            r.message = "Error: " + e.getMessage();
-            lastStatusCode = 500;
-            return r;
-        }
+        return doGenericRequest("DELETE", "/db", null, null);
     }
+
 
 
     private String doRequest(String method, String path, String body, String authHeader) throws IOException {
@@ -325,7 +295,9 @@ public class ServerFacade {
         try (BufferedReader br = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))) {
             StringBuilder sb = new StringBuilder();
             String line;
-            while ((line = br.readLine()) != null) sb.append(line);
+            while ((line = br.readLine()) != null){
+                sb.append(line);
+            }
             return sb.toString();
         } finally {
             conn.disconnect();
