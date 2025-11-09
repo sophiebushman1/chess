@@ -1,14 +1,11 @@
 package client;
 
 import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
 
 import java.io.*;
-import java.lang.reflect.Type;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
 
 public class ServerFacade {
     private final String baseUrl;
@@ -79,8 +76,12 @@ public class ServerFacade {
 
         @Override
         public boolean equals(Object o) {
-            if (this == o) return true;
-            if (!(o instanceof GameInfo)) return false;
+            if (this == o){
+                return true;
+            }
+            if (!(o instanceof GameInfo)){
+                return false;
+            }
             GameInfo g = (GameInfo) o;
             return gameID == g.gameID
                     && ((whiteUsername == null && g.whiteUsername == null) || (whiteUsername != null && whiteUsername.equals(g.whiteUsername)))
@@ -127,7 +128,8 @@ public class ServerFacade {
             if (lastStatusCode == 200) {
                 AuthResult r = gson.fromJson(resp, AuthResult.class);
                 return r;
-            } else {
+            }
+            else {
 
                 AuthResult r = new AuthResult();
                 ErrorResponse err = gson.fromJson(resp, ErrorResponse.class);
@@ -223,7 +225,9 @@ public class ServerFacade {
 
                 ListGamesResult r = gson.fromJson(resp, ListGamesResult.class);
                 // non-null games
-                if (r.games == null) r.games = new GameInfo[0];
+                if (r.games == null){
+                    r.games = new GameInfo[0];
+                }
                 return r;
             } else {
                 ListGamesResult r = new ListGamesResult();
@@ -310,7 +314,9 @@ public class ServerFacade {
         lastStatusCode = code;
 
         InputStream is = (code >= 200 && code < 400) ? conn.getInputStream() : conn.getErrorStream();
-        if (is == null) return "";
+        if (is == null){
+            return "";
+        }
 
         try (BufferedReader br = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))) {
             StringBuilder sb = new StringBuilder();
@@ -327,9 +333,13 @@ public class ServerFacade {
         try {
             var f = obj.getClass().getDeclaredField(fieldName);
             boolean accessible = f.canAccess(obj);
-            if (!accessible) f.setAccessible(true);
+            if (!accessible){
+                f.setAccessible(true);
+            }
             f.set(obj, value);
-            if (!accessible) f.setAccessible(false);
+            if (!accessible){
+                f.setAccessible(false);
+            }
         } catch (Exception ignored) {
         }
     }
