@@ -1,24 +1,30 @@
 package client;
 
 import org.junit.jupiter.api.*;
+import server.Server;
 import static org.junit.jupiter.api.Assertions.*;
 
 @TestMethodOrder(MethodOrderer.MethodName.class)
-public class ServerFacadeTest {
+public class ServerFacadeTests {
 
+    private static Server server;
     private static ServerFacade facade;
-    private static final int PORT = 2400;
-
     @BeforeAll
     public static void init() {
-        facade = new ServerFacade(PORT);
-        System.out.println("Initialized ServerFacade for tests on port " + PORT);
+        server = new Server();
+        var port = server.run(0); // start on a random free port
+        System.out.println("Started test HTTP server on port " + port);
+        facade = new ServerFacade(port);
+    }
+    @AfterAll
+    public static void stopServer() {
+        server.stop();
     }
 
     @BeforeEach
-    void clearDB() {
-        var res = facade.clear();
-        assertNull(res.getMessage(), "clear() should succeed");
+    public void clear() {
+        var result = facade.clear();
+        assertNull(result.getMessage(), "clear() should succeed");
     }
 
     // clear tests
