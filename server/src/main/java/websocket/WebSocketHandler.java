@@ -56,8 +56,12 @@ public class WebSocketHandler {
                 case RESIGN -> resign(cmd.getGameID(), auth.username());
                 case MAKE_MOVE -> {
                     MakeMoveCommand moveCmd = gson.fromJson(raw, MakeMoveCommand.class);
-                    ChessMove move = moveCmd.toChessMove();
-                    makeMove(ctx, moveCmd.getGameID(), move, auth.username());
+                    GameData gameData = dataAccess.getGame(moveCmd.getGameID()); // get the current game
+                    if (gameData == null) {
+                        send(ctx, new ErrorMessage("invalid gameID"));
+                        return;
+                    }
+                    makeMove(ctx, moveCmd, auth.username(), gameData);
                 }
 
 
@@ -83,29 +87,19 @@ public class WebSocketHandler {
         broadcast(gameID, new NotificationMessage(username + " resigned"));
     }
 
-    private void makeMove(WsContext ctx, int gameID, ChessMove move, String username) {
-        GameData gameData;
-        try {
-            gameData = dataAccess.getGame(gameID);  // handles DataAccessException
-            if (gameData == null) {
-                send(ctx, new ErrorMessage("invalid gameID"));
-                return;
-            }
-        } catch (DataAccessException e) {
-            send(ctx, new ErrorMessage("internal server error"));
-            return;
-        }
-
+    private void makeMove(WsContext ctx, MakeMoveCommand cmd, String username, GameData gameData) {
+        ChessMove move = cmd.toChessMove();
         ChessGame game = gameData.game();
 
         try {
-            game.makeMove(move); // can throw InvalidMoveException
+            // attempt to make the move
+            game.makeMove(move);
         } catch (Exception e) {
             send(ctx, new ErrorMessage("invalid move: " + e.getMessage()));
             return;
         }
 
-        // fix: include gameName to match 5-arg GameData constructor
+        // update database with new game state
         GameData updated = new GameData(
                 gameData.gameID(),
                 gameData.whiteUsername(),
@@ -115,15 +109,28 @@ public class WebSocketHandler {
         );
 
         try {
-            dataAccess.updateGame(updated); // handles DataAccessException
+            dataAccess.updateGame(updated);
         } catch (DataAccessException e) {
             send(ctx, new ErrorMessage("internal server error"));
             return;
         }
 
-        broadcast(gameID, new LoadGameMessage(updated));
-        broadcast(gameID, new NotificationMessage(username + " made a move"));
+        // broadcast updated board
+        broadcast(gameData.gameID(), new LoadGameMessage(updated));
+
+        // check/checkmate/stalemate notifications
+        ChessGame.TeamColor currentTurn = game.getTeamTurn();
+        if (game.isInCheckmate(currentTurn)) {
+            broadcast(gameData.gameID(), new NotificationMessage(username + " wins by checkmate!"));
+        } else if (game.isInStalemate(currentTurn)) {
+            broadcast(gameData.gameID(), new NotificationMessage("Game ended in stalemate"));
+        } else if (game.isInCheck(currentTurn)) {
+            broadcast(gameData.gameID(), new NotificationMessage(currentTurn + " is in check!"));
+        } else {
+            broadcast(gameData.gameID(), new NotificationMessage(username + " made a move"));
+        }
     }
+
 
 
     private void removeConnection(WsContext ctx) {
