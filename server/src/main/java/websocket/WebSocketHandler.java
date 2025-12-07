@@ -5,8 +5,12 @@ import io.javalin.websocket.WsContext;
 import dataaccess.DataAccess;
 import model.AuthData;
 import model.GameData;
+import chess.ChessGame;
+import chess.ChessMove;
 import websocket.commands.UserGameCommand;
+import websocket.commands.MakeMoveCommand;
 import websocket.messages.*;
+import dataaccess.DataAccessException;
 
 import java.util.Map;
 import java.util.Set;
@@ -50,7 +54,13 @@ public class WebSocketHandler {
                 case CONNECT -> connect(ctx, cmd.getGameID(), game);
                 case LEAVE -> leave(ctx, cmd.getGameID());
                 case RESIGN -> resign(cmd.getGameID(), auth.username());
-                case MAKE_MOVE -> send(ctx, new ErrorMessage("move handling not implemented"));
+                case MAKE_MOVE -> {
+                    MakeMoveCommand moveCmd = gson.fromJson(raw, MakeMoveCommand.class);
+                    ChessMove move = moveCmd.toChessMove();
+                    makeMove(ctx, moveCmd.getGameID(), move, auth.username());
+                }
+
+
             }
 
         } catch (Exception e) {
@@ -72,6 +82,49 @@ public class WebSocketHandler {
     private void resign(int gameID, String username) {
         broadcast(gameID, new NotificationMessage(username + " resigned"));
     }
+
+    private void makeMove(WsContext ctx, int gameID, ChessMove move, String username) {
+        GameData gameData;
+        try {
+            gameData = dataAccess.getGame(gameID);  // handles DataAccessException
+            if (gameData == null) {
+                send(ctx, new ErrorMessage("invalid gameID"));
+                return;
+            }
+        } catch (DataAccessException e) {
+            send(ctx, new ErrorMessage("internal server error"));
+            return;
+        }
+
+        ChessGame game = gameData.game();
+
+        try {
+            game.makeMove(move); // can throw InvalidMoveException
+        } catch (Exception e) {
+            send(ctx, new ErrorMessage("invalid move: " + e.getMessage()));
+            return;
+        }
+
+        // fix: include gameName to match 5-arg GameData constructor
+        GameData updated = new GameData(
+                gameData.gameID(),
+                gameData.whiteUsername(),
+                gameData.blackUsername(),
+                gameData.gameName(),
+                game
+        );
+
+        try {
+            dataAccess.updateGame(updated); // handles DataAccessException
+        } catch (DataAccessException e) {
+            send(ctx, new ErrorMessage("internal server error"));
+            return;
+        }
+
+        broadcast(gameID, new LoadGameMessage(updated));
+        broadcast(gameID, new NotificationMessage(username + " made a move"));
+    }
+
 
     private void removeConnection(WsContext ctx) {
         gameConnections.values().forEach(set -> set.remove(ctx));
