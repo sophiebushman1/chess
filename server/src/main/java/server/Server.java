@@ -13,6 +13,7 @@ import java.lang.reflect.Type;
 import java.util.UUID;
 import org.mindrot.jbcrypt.BCrypt;
 
+
 public class Server {
     private final Gson gson = new Gson();
     private Javalin app;
@@ -42,7 +43,7 @@ public class Server {
         app.exception(Exception.class, (e, ctx) -> {
             ctx.status(500);
             e.printStackTrace();
-            ctx.json(new ErrorResponse("Error: Internal server error"));
+            ctx.json(new ErrorResponse("Internal server error"));
         });
 
         app.before(ctx -> ctx.header("Access-Control-Allow-Origin", "*"));
@@ -54,6 +55,9 @@ public class Server {
         app.get("/game", this::listGames);
         app.put("/game", this::joinGame);
         app.delete("/db", this::clearDB);
+        new websocket.WebSocketHandler(dataAccess).register(app);
+
+
 
         app.start(port);
         return app.port();
@@ -70,13 +74,13 @@ public class Server {
         requireNonEmpty(req.username(), req.password(), req.email());
         try {
             if (dataAccess.getUser(req.username()) != null) {
-                throw new AlreadyTakenException("Error: already taken");
+                throw new AlreadyTakenException("already taken");
             }
             dataAccess.createUser(new UserData(req.username(), req.password(), req.email()));
             String token = createAuthToken(req.username());
             ctx.status(200).json(new AuthResult(token, req.username()));
         } catch (DataAccessException e) {
-            throw new ResponseException(500, "Error: " + e.getMessage());
+            throw new ResponseException(500, e.getMessage());
         }
     }
 
@@ -86,12 +90,12 @@ public class Server {
         try {
             UserData user = dataAccess.getUser(req.username());
             if (user == null || !BCrypt.checkpw(req.password(), user.password())) {
-                throw new UnauthorizedException("Error: unauthorized");
+                throw new UnauthorizedException("unauthorized");
             }
             String token = createAuthToken(req.username());
             ctx.status(200).json(new AuthResult(token, req.username()));
         } catch (DataAccessException e) {
-            throw new ResponseException(500, "Error: " + e.getMessage());
+            throw new ResponseException(500, e.getMessage());
         }
     }
 
@@ -99,12 +103,12 @@ public class Server {
         String token = requireAuth(ctx);
         try {
             if (dataAccess.getAuth(token) == null) {
-                throw new UnauthorizedException("Error: unauthorized");
+                throw new UnauthorizedException("unauthorized");
             }
             dataAccess.deleteAuth(token);
             ctx.status(200);
         } catch (DataAccessException e) {
-            throw new ResponseException(500, "Error: " + e.getMessage());
+            throw new ResponseException(500, e.getMessage());
         }
     }
 
@@ -121,7 +125,7 @@ public class Server {
             );
             ctx.status(200).json(new CreateGameResult(created.gameID()));
         } catch (DataAccessException e) {
-            throw new ResponseException(500, "Error: " + e.getMessage());
+            throw new ResponseException(500, e.getMessage());
         }
     }
 
@@ -135,7 +139,7 @@ public class Server {
                     .toArray(GameInfo[]::new);
             ctx.status(200).json(new ListGamesResult(games));
         } catch (DataAccessException e) {
-            throw new ResponseException(500, "Error: " + e.getMessage());
+            throw new ResponseException(500, e.getMessage());
         }
     }
 
@@ -148,24 +152,24 @@ public class Server {
 
         try {
             GameData game = dataAccess.getGame(req.gameID());
-            if (game == null) { throw new BadRequestException("Error: bad request"); }
+            if (game == null) { throw new BadRequestException("bad request"); }
 
             String username = dataAccess.getAuth(token).username();
             GameData updated = switch (req.playerColor().toUpperCase()) {
                 case "WHITE" -> {
-                    if (game.whiteUsername() != null) { throw new AlreadyTakenException("Error: already taken"); }
+                    if (game.whiteUsername() != null) { throw new AlreadyTakenException("already taken"); }
                     yield new GameData(game.gameID(), username, game.blackUsername(), game.gameName(), game.game());
                 }
                 case "BLACK" -> {
-                    if (game.blackUsername() != null) { throw new AlreadyTakenException("Error: already taken"); }
+                    if (game.blackUsername() != null) { throw new AlreadyTakenException("already taken"); }
                     yield new GameData(game.gameID(), game.whiteUsername(), username, game.gameName(), game.game());
                 }
-                default -> throw new BadRequestException("Error: bad request");
+                default -> throw new BadRequestException("bad request");
             };
             dataAccess.updateGame(updated);
             ctx.status(200);
         } catch (DataAccessException e) {
-            throw new ResponseException(500, "Error: " + e.getMessage());
+            throw new ResponseException(500, e.getMessage());
         }
     }
 
@@ -174,7 +178,7 @@ public class Server {
             dataAccess.clear();
             ctx.status(200);
         } catch (DataAccessException e) {
-            ctx.status(500).json(new ErrorResponse("Error: " + e.getMessage()));
+            ctx.status(500).json(new ErrorResponse(e.getMessage()));
         }
     }
 
@@ -186,22 +190,22 @@ public class Server {
 
     private String requireAuth(Context ctx) throws ResponseException {
         String token = ctx.header("authorization");
-        if (token == null || token.isEmpty()) { throw new UnauthorizedException("Error: unauthorized"); }
+        if (token == null || token.isEmpty()) { throw new UnauthorizedException("unauthorized"); }
         return token;
     }
 
     private void requireValidAuth(String token) throws ResponseException {
         try {
-            if (dataAccess.getAuth(token) == null) { throw new UnauthorizedException("Error: unauthorized"); }
+            if (dataAccess.getAuth(token) == null) { throw new UnauthorizedException("unauthorized"); }
         } catch (DataAccessException e) {
-            throw new ResponseException(500, "Error: " + e.getMessage());
+            throw new ResponseException(500, e.getMessage());
         }
     }
 
     private void requireNonEmpty(String... fields) throws ResponseException {
         for (String f : fields) {
             if (f == null || f.isEmpty()) {
-                throw new BadRequestException("Error: bad request");
+                throw new BadRequestException("bad request");
             }
         }
     }
