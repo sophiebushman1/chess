@@ -68,6 +68,19 @@ public class ChessPosition {
     // positions with the same corrdinates are not equal when they should be.
 
 
+
+    public static ChessPosition fromAlgebraic(String s) {
+        s = s.toLowerCase();
+        char file = s.charAt(0);
+        char rank = s.charAt(1);
+        int col = file - 'a' + 1;
+        int row = rank - '1' + 1;
+        return new ChessPosition(row, col);
+    }
+
+    public String toAlgebraic() {
+        char file = (char) ('a' + column - 1);
+        char rank = (char) ('1' + row - 1);
+        return "" + file + rank;
+    }
 }
-
-
