@@ -1,17 +1,29 @@
 package ui;
 
 import client.ServerFacade;
-import chess.ChessGame;
-import chess.ChessPiece;
+import chess.*;
+import websocket.commands.*;
+import websocket.messages.*;
+
+import com.google.gson.Gson;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.WebSocket;
 import java.util.*;
+import java.util.concurrent.CompletionStage;
 
 public class ChessClient {
 
     private final ServerFacade server;
     private String authToken = null;
 
-    // keeps mapping displayedNumber to the real gameID
     private final Map<Integer, ServerFacade.GameInfo> gameNumberMap = new HashMap<>();
+
+    private final Gson gson = new Gson();
+    private WebSocket ws;
+    private ChessGame currentGame = new ChessGame();
+    private ChessGame.TeamColor myTeam = ChessGame.TeamColor.WHITE;
+    private int currentGameID = -1;
 
     public ChessClient(int port) {
         server = new ServerFacade(port);
@@ -22,7 +34,6 @@ public class ChessClient {
         preLoginLoop();
     }
 
-    // pre login
     private void preLoginLoop() {
         Scanner scan = new Scanner(System.in);
 
@@ -45,7 +56,6 @@ public class ChessClient {
         postLoginLoop();
     }
 
-    // post login
     private void postLoginLoop() {
         Scanner scan = new Scanner(System.in);
 
@@ -115,7 +125,7 @@ public class ChessClient {
         }
 
         System.out.println("Logged out!");
-        authToken = null; // return to prelogin
+        authToken = null;
     }
 
     private void handleCreateGame(Scanner scan) {
@@ -178,9 +188,11 @@ public class ChessClient {
 
         ServerFacade.GameInfo g = gameNumberMap.get(num);
         int gameID = g.getGameID();
+        currentGameID = gameID;
 
         if (playing) {
             String color = askColor(scan);
+            myTeam = color.equals("WHITE") ? ChessGame.TeamColor.WHITE : ChessGame.TeamColor.BLACK;
             var res = server.joinGame(color, gameID, authToken);
 
             if (res.getMessage() != null) {
@@ -189,11 +201,12 @@ public class ChessClient {
             }
 
             System.out.println("Joined game!");
-            drawBoard(ChessGame.TeamColor.WHITE);
+            connectWebSocket(gameID);
+            moveLoop(scan);
         } else {
-            // observe (don't join)
             System.out.println("Observing game!");
-            drawBoard(ChessGame.TeamColor.WHITE);
+            connectWebSocket(gameID);
+            moveLoop(scan);
         }
     }
 
@@ -210,53 +223,83 @@ public class ChessClient {
         }
     }
 
-    //board looks
+    private void connectWebSocket(int gameID) {
+        try {
+            ws = HttpClient.newHttpClient()
+                    .newWebSocketBuilder()
+                    .buildAsync(URI.create("ws://localhost:8080/ws"), new WSListener())
+                    .join();
+
+            UserGameCommand connect = new UserGameCommand(
+                    UserGameCommand.CommandType.CONNECT,
+                    authToken,
+                    gameID
+            );
+
+            ws.sendText(gson.toJson(connect), true);
+
+        } catch (Exception e) {
+            System.out.println("WebSocket error: " + e.getMessage());
+        }
+    }
+
+    private class WSListener implements WebSocket.Listener {
+        @Override
+        public CompletionStage<?> onText(WebSocket ws, CharSequence data, boolean last) {
+            String json = data.toString();
+            ServerMessage msg = gson.fromJson(json, ServerMessage.class);
+
+            if (msg instanceof LoadGameMessage load) {
+                currentGame = load.getGame().game();
+                currentGameID = load.getGame().gameID();
+                drawBoard(myTeam);
+            }
+
+            if (msg instanceof NotificationMessage note) {
+                System.out.println("** " + note.getMessage() + " **");
+            }
+
+            ws.request(1);
+            return null;
+        }
+    }
+
+    private void moveLoop(Scanner scan) {
+        while (true) {
+            System.out.print("move (e2e4) or 'quit'> ");
+            String s = scan.nextLine().trim();
+
+            if (s.equalsIgnoreCase("quit")) return;
+            if (s.length() < 4) {
+                System.out.println("Invalid format.");
+                continue;
+            }
+
+            ChessPosition start = ChessPosition.fromAlgebraic(s.substring(0, 2));
+            ChessPosition end = ChessPosition.fromAlgebraic(s.substring(2, 4));
+
+            MakeMoveCommand cmd = new MakeMoveCommand(
+                    authToken,
+                    currentGameID,
+                    start,
+                    end,
+                    null
+            );
+
+            ws.sendText(gson.toJson(cmd), true);
+        }
+    }
+
     private void drawBoard(ChessGame.TeamColor perspective) {
         System.out.println("\n-- Chess Board (" + perspective + ") --");
 
-        // empty board
-        ChessPiece[][] board = new ChessPiece[8][8];
+        ChessBoard board = currentGame.getBoard();
 
-        // white  perspective
-        // Row 0 = top black major
-        // Row 1 = black pawns
-        board[0] = new ChessPiece[]{
-                new ChessPiece(ChessGame.TeamColor.BLACK, ChessPiece.PieceType.ROOK),
-                new ChessPiece(ChessGame.TeamColor.BLACK, ChessPiece.PieceType.KNIGHT),
-                new ChessPiece(ChessGame.TeamColor.BLACK, ChessPiece.PieceType.BISHOP),
-                new ChessPiece(ChessGame.TeamColor.BLACK, ChessPiece.PieceType.QUEEN),
-                new ChessPiece(ChessGame.TeamColor.BLACK, ChessPiece.PieceType.KING),
-                new ChessPiece(ChessGame.TeamColor.BLACK, ChessPiece.PieceType.BISHOP),
-                new ChessPiece(ChessGame.TeamColor.BLACK, ChessPiece.PieceType.KNIGHT),
-                new ChessPiece(ChessGame.TeamColor.BLACK, ChessPiece.PieceType.ROOK)
-        };
-        Arrays.fill(board[1], new ChessPiece(ChessGame.TeamColor.BLACK, ChessPiece.PieceType.PAWN));
-
-        // empty middle rows
-        for (int r = 2; r <= 5; r++) {
-            Arrays.fill(board[r], null);
-        }
-
-        // Row 6 = white pawns
-        // Row 7 = whit major
-        Arrays.fill(board[6], new ChessPiece(ChessGame.TeamColor.WHITE, ChessPiece.PieceType.PAWN));
-        board[7] = new ChessPiece[]{
-                new ChessPiece(ChessGame.TeamColor.WHITE, ChessPiece.PieceType.ROOK),
-                new ChessPiece(ChessGame.TeamColor.WHITE, ChessPiece.PieceType.KNIGHT),
-                new ChessPiece(ChessGame.TeamColor.WHITE, ChessPiece.PieceType.BISHOP),
-                new ChessPiece(ChessGame.TeamColor.WHITE, ChessPiece.PieceType.QUEEN),
-                new ChessPiece(ChessGame.TeamColor.WHITE, ChessPiece.PieceType.KING),
-                new ChessPiece(ChessGame.TeamColor.WHITE, ChessPiece.PieceType.BISHOP),
-                new ChessPiece(ChessGame.TeamColor.WHITE, ChessPiece.PieceType.KNIGHT),
-                new ChessPiece(ChessGame.TeamColor.WHITE, ChessPiece.PieceType.ROOK)
-        };
-
-        // Draw rows 8→1
-        //white perspective = a1 on bottom left corner
-        for (int r = 0; r < 8; r++) {
-            System.out.print((8 - r) + "  ");
-            for (int c = 0; c < 8; c++) {
-                ChessPiece p = board[r][c];
+        for (int r = 8; r >= 1; r--) {
+            System.out.print(r + "  ");
+            for (int c = 1; c <= 8; c++) {
+                ChessPosition pos = new ChessPosition(r, c);
+                ChessPiece p = board.getPiece(pos);
                 if (p == null) {
                     System.out.print(". ");
                 } else {
@@ -280,9 +323,6 @@ public class ChessClient {
         }
         return '?';
     }
-
-
-    // HELP TEXT
 
     private void printPreloginHelp() {
         System.out.println("""
