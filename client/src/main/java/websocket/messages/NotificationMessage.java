@@ -1,11 +1,14 @@
 package websocket.messages;
 
 public class NotificationMessage extends ServerMessage {
-    // tests expect the field to be called message
-    public String message;
+    private final String message;
 
     public NotificationMessage(String message) {
         super(ServerMessageType.NOTIFICATION);
         this.message = message;
+    }
+
+    public String getMessage() {
+        return message;
     }
 }

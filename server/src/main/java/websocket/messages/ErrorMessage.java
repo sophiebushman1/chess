@@ -1,14 +1,11 @@
 package websocket.messages;
 
 public class ErrorMessage extends ServerMessage {
-    private final String message;
+    // tests expect the field to be called errorMessage
+    public String errorMessage;
 
-    public ErrorMessage(String message) {
+    public ErrorMessage(String msg) {
         super(ServerMessageType.ERROR);
-        this.message = message;
-    }
-
-    public String getMessage() {
-        return message;
+        this.errorMessage = msg;
     }
 }
