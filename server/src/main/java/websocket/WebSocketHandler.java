@@ -141,6 +141,13 @@ public class WebSocketHandler {
             return;
         }
 
+        GameData game = dataAccess.getGame(gameID);
+        if (game == null) {
+            sendError(ctx, "game not found");
+            return;
+        }
+
+        // --- GAME OVER CHECK ---
         if (finishedGames.contains(gameID)) {
             sendError(ctx, "game is over");
             return;
@@ -152,14 +159,13 @@ public class WebSocketHandler {
             return;
         }
 
-        GameData game = dataAccess.getGame(gameID);
-        if (game == null) {
-            sendError(ctx, "game not found");
-            return;
-        }
+        String username = auth.username();
+        ChessGame chess = game.game();   // <-- DO NOT DEEP COPY ANYMORE
 
+        // parse move
         JsonObject moveObj = raw.has("move") && raw.get("move").isJsonObject()
                 ? raw.getAsJsonObject("move") : null;
+
         if (moveObj == null) {
             sendError(ctx, "missing move");
             return;
@@ -173,37 +179,66 @@ public class WebSocketHandler {
             return;
         }
 
-        ChessGame chess = game.game();
+        // TEAM TURN CHECK (corrected)
+        ChessGame.TeamColor turn = chess.getTeamTurn();
+
+        if (turn == ChessGame.TeamColor.WHITE) {
+            if (game.whiteUsername() != null && !username.equals(game.whiteUsername())) {
+                sendError(ctx, "not white's turn");
+                return;
+            }
+        }
+
+        if (turn == ChessGame.TeamColor.BLACK) {
+            if (game.blackUsername() != null && !username.equals(game.blackUsername())) {
+                sendError(ctx, "not black's turn");
+                return;
+            }
+        }
+
+        // try move
         try {
             chess.makeMove(move);
         } catch (Exception ex) {
-            sendError(ctx, "error: " + (ex.getMessage() == null ? "invalid move" : ex.getMessage()));
+            sendError(ctx, "invalid move");
             return;
         }
 
-        GameData updated = new GameData(game.gameID(), game.whiteUsername(), game.blackUsername(),
-                game.gameName(), chess);
+        // update stored game
+        GameData updated = new GameData(
+                game.gameID(),
+                game.whiteUsername(),
+                game.blackUsername(),
+                game.gameName(),
+                chess
+        );
         dataAccess.updateGame(updated);
 
+        // broadcast LOAD_GAME to everyone
         broadcastLoadGame(gameID, updated);
 
-        String note = auth.username() + " moved from " + move.getStartPosition()
-                + " to " + move.getEndPosition();
+        // broadcast simple notification to all OTHER clients
+        String note = username + " moved from " + move.getStartPosition() + " to " + move.getEndPosition();
         broadcastNotificationToOthers(gameID, note, ctx);
 
-        if (chess.isInCheck(ChessGame.TeamColor.WHITE)) broadcastNotification(gameID, "white in check");
-        if (chess.isInCheck(ChessGame.TeamColor.BLACK)) broadcastNotification(gameID, "black in check");
+        // check/checkmate/stalemate notifications
+        if (chess.isInCheck(ChessGame.TeamColor.WHITE))
+            broadcastNotification(gameID, "white in check");
 
-        if (chess.isInCheckmate(ChessGame.TeamColor.WHITE) ||
-                chess.isInCheckmate(ChessGame.TeamColor.BLACK)) {
+        if (chess.isInCheck(ChessGame.TeamColor.BLACK))
+            broadcastNotification(gameID, "black in check");
+
+        if (chess.isInCheckmate(ChessGame.TeamColor.WHITE)
+                || chess.isInCheckmate(ChessGame.TeamColor.BLACK)) {
             broadcastNotification(gameID, "checkmate");
             finishedGames.add(gameID);
-        } else if (chess.isInStalemate(ChessGame.TeamColor.WHITE) ||
-                chess.isInStalemate(ChessGame.TeamColor.BLACK)) {
+        } else if (chess.isInStalemate(ChessGame.TeamColor.WHITE)
+                || chess.isInStalemate(ChessGame.TeamColor.BLACK)) {
             broadcastNotification(gameID, "stalemate");
             finishedGames.add(gameID);
         }
     }
+
 
     private void handleLeave(WsMessageContext ctx, String authToken, Integer gameID)
             throws DataAccessException {
@@ -247,6 +282,12 @@ public class WebSocketHandler {
             return;
         }
 
+        // if already finished → ERROR
+        if (finishedGames.contains(gameID)) {
+            sendError(ctx, "game already over");
+            return;
+        }
+
         AuthData auth = dataAccess.getAuth(authToken);
         if (auth == null) {
             sendError(ctx, "invalid auth token");
@@ -259,17 +300,31 @@ public class WebSocketHandler {
             return;
         }
 
+        String username = auth.username();
+
+        boolean isWhite = username.equals(game.whiteUsername());
+        boolean isBlack = username.equals(game.blackUsername());
+
+        // observers CANNOT resign
+        if (!isWhite && !isBlack) {
+            sendError(ctx, "observers cannot resign");
+            return;
+        }
+
+        // mark finished
         finishedGames.add(gameID);
-        broadcastNotification(gameID, auth.username() + " resigned");
+
+        // notify everyone
+        broadcastNotification(gameID, username + " resigned");
     }
 
+
     private void broadcastLoadGame(int gameID, GameData game) {
-        Map<String, WsContext> sessionMap = connections.getOrDefault(gameID, Map.of());
         String json = gson.toJson(new LoadGameMessage(game));
-        for (WsContext c : sessionMap.values()) {
-            try { c.send(json); } catch (Exception ignored) {}
-        }
+        connections.getOrDefault(gameID, Map.of()).values()
+                .forEach(c -> { try { c.send(json); } catch (Exception ignored) {} });
     }
+
 
     private void broadcastNotificationToOthers(int gameID, String message, WsMessageContext exclude) {
         Map<String, WsContext> sessionMap = connections.getOrDefault(gameID, Map.of());
