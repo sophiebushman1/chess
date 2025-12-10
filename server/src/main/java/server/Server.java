@@ -13,7 +13,6 @@ import java.lang.reflect.Type;
 import java.util.UUID;
 import org.mindrot.jbcrypt.BCrypt;
 
-
 public class Server {
     private final Gson gson = new Gson();
     private Javalin app;
@@ -55,9 +54,6 @@ public class Server {
         app.get("/game", this::listGames);
         app.put("/game", this::joinGame);
         app.delete("/db", this::clearDB);
-        new websocket.WebSocketHandler(dataAccess).register(app);
-
-
 
         app.start(port);
         return app.port();
