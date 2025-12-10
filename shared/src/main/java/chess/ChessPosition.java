@@ -46,16 +46,16 @@ public class ChessPosition {
 
     @Override
     public boolean equals(Object o) {
-        if (!(o instanceof ChessPosition that)) {
-            return false;
-        }
-        return row == that.row && column == that.column;
+        if (this == o) return true;
+        if (!(o instanceof ChessPosition other)) return false;
+        return this.row == other.row && this.column == other.column;
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(row, column);
     }
+
 
     @Override
     public String toString() {
