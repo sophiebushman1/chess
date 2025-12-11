@@ -1,13 +1,14 @@
+
 package websocket.messages;
 
 import model.GameData;
-import java.util.Objects;
 
+import java.util.Objects;
 public class ServerMessage {
     ServerMessageType serverMessageType;
     GameData game;
-    String errorMessage;  // Error message field (used for errors)
-    String message;  // General message (used for notifications)
+    String errorMessage;
+    String message;
 
     public enum ServerMessageType {
         LOAD_GAME,
@@ -67,7 +68,7 @@ public class ServerMessage {
         return Objects.hash(getServerMessageType());
     }
 
-    // Subclasses for specific message types
+    // subclasses
     public static class LoadGameMessage extends ServerMessage {
         public LoadGameMessage(GameData gameData) {
             super(ServerMessageType.LOAD_GAME, gameData);
@@ -78,21 +79,21 @@ public class ServerMessage {
         }
     }
 
-    // Update the ErrorMessage class to use errorMessage field
+
     public static class ErrorMessage extends ServerMessage {
         public ErrorMessage(String errorMessage) {
-            super(ServerMessageType.ERROR, errorMessage, true); // Pass true for errors
+            super(ServerMessageType.ERROR, errorMessage, true);
         }
 
         public String getErrorMessage() {
-            return this.errorMessage; // Get the error message
+            return this.errorMessage; // grab error message
         }
     }
 
-    // Update the NotificationMessage class to use message field
+
     public static class NotificationMessage extends ServerMessage {
         public NotificationMessage(String message) {
-            super(ServerMessageType.NOTIFICATION, message); // Use message for notifications
+            super(ServerMessageType.NOTIFICATION, message);
         }
 
         public String getNotificationMessage() {
