@@ -5,99 +5,92 @@ import model.AuthData;
 import model.GameData;
 import model.UserData;
 
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.concurrent.atomic.AtomicInteger;
-
+import java.util.*;
 
 public class MemoryDAO implements DataAccess {
 
-    private final Map<String, UserData> userMap = new HashMap<>();
-    private final Map<String, AuthData> authMap = new HashMap<>();
-    private final Map<Integer, GameData> gameMap = new HashMap<>();
-    private final AtomicInteger nextGameID = new AtomicInteger(1);
+    private final Map<String, UserData> users = new HashMap<>();
+    private final Map<String, AuthData> authTokens = new HashMap<>();
+    private final Map<Integer, GameData> games = new HashMap<>();
 
-    /**
-     * Clears all stored data (users, auth tokens, games).
-     * @throws DataAccessException if there's an issue clearing data (not applicable for memory DAO).
-     */
+    private int nextGameID = 1;
+
+    // ---- Users ----
     @Override
-    public void clear() throws DataAccessException {
-        userMap.clear();
-        authMap.clear();
-        gameMap.clear();
-        nextGameID.set(1); // Reset the game ID counter
+    public void createUser(UserData user) {
+        users.put(user.username(), user);
     }
-
-    @Override
-    public void createUser(UserData userData) throws DataAccessException {
-        if (userMap.containsKey(userData.username())) {
-            throw new DataAccessException("Error: already taken");
-        }
-        userMap.put(userData.username(), userData);
-    }
-
 
     @Override
     public UserData getUser(String username) {
-        return userMap.get(username);
+        return users.get(username);
     }
 
-
     @Override
-    public AuthData createAuth(AuthData authData) {
-        authMap.put(authData.authToken(), authData);
-        return authData; // FIX: Changed return type from void to AuthData to match interface
+    public Collection<UserData> getAllUsers() {
+        return users.values();
+    }
+
+    // ---- Auth ----
+    @Override
+    public AuthData createAuth(AuthData auth) {
+        authTokens.put(auth.authToken(), auth);
+        return auth;
     }
 
     @Override
     public AuthData getAuth(String authToken) {
-        return authMap.get(authToken);
+        return authTokens.get(authToken);
     }
 
     @Override
     public void deleteAuth(String authToken) {
-        authMap.remove(authToken);
+        authTokens.remove(authToken);
     }
 
-
+    // ---- Games ----
     @Override
-    public GameData createGame(GameData gameData) {
-        int gameID = nextGameID.getAndIncrement();
-        // Create a new GameData with the generated ID and a new ChessGame
-        GameData newGame = new GameData(
-                gameID,
-                gameData.whiteUsername(),
-                gameData.blackUsername(),
-                gameData.gameName(),
-                new ChessGame() // Ensure a fresh game state
-        );
-        gameMap.put(gameID, newGame);
+    public GameData createGame(GameData game) {
+        int id = nextGameID++;
+        GameData newGame = new GameData(id,
+                game.whiteUsername(),
+                game.blackUsername(),
+                game.gameName(),
+                game.game());
+        games.put(id, newGame);
         return newGame;
     }
 
-
     @Override
     public GameData getGame(int gameID) {
-        return gameMap.get(gameID);
+        return games.get(gameID);
     }
 
+    @Override
+    public GameData getGameByName(String gameName) {
+        for (GameData g : games.values()) {
+            if (g.gameName().equalsIgnoreCase(gameName)) {
+                return g;
+            }
+        }
+        return null;
+    }
 
     @Override
     public Collection<GameData> listGames() {
-        // Returns a copy of the values in the map
-        return gameMap.values();
+        return games.values();
     }
 
+    @Override
+    public void updateGame(GameData game) {
+        games.put(game.gameID(), game);
+    }
 
     @Override
-    public void updateGame(GameData updatedGame) throws DataAccessException {
-        // use the game ID to put the new object
-        // into the map, replacing the old one.
-        if (!gameMap.containsKey(updatedGame.gameID())) {
-            throw new DataAccessException("Error: Game not found for update.");
-        }
-        gameMap.put(updatedGame.gameID(), updatedGame);
+    public void clear() {
+        users.clear();
+        authTokens.clear();
+        games.clear();
+        nextGameID = 1;
     }
 }
